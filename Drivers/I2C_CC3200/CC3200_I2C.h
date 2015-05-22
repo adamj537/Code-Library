@@ -61,4 +61,4 @@ bool I2CIsBusy(i2cChannel_t channel);
 i2cResult_t I2CTest(i2cChannel_t channel, uint8_t repeatFlag);
 #endif
 
-#endif /* HAL_I2C_h_ */
+#endif /* CC3200_H */

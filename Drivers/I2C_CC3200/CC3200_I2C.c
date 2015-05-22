@@ -262,7 +262,7 @@ i2cResult_t GetI2CBase(uint32_t channel, uint32_t *baseAddress)
  *				If the I2C was initialized previously, I2CDisable() must be
  *				called before re-initializing.
  *
- *	@param[in]	config A pointer to a sI2CConfig_t structure with the desired
+ *	@param[in]	configPtr - pointer to an i2cConfig_t structure with the desired
  *				configuration parameters.
  *
  *	@return		An I2C handle that is used in other calls on success,
