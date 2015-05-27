@@ -46,7 +46,6 @@ volatile uint32_t rxBytesDone[I2C_NUM_CHANNELS];	// num bytes received
 
 // flags for enabling callbacks (for interrupts that are always enabled)
 bool txCallbackEnable[I2C_NUM_CHANNELS];
-bool noAckCallbackEnable[I2C_NUM_CHANNELS];
 bool rxCallbackEnable[I2C_NUM_CHANNELS];
 
 // I2C address (used by master and slave configurations)
@@ -81,7 +80,7 @@ static void I2C_ISR(void)
 		MAP_I2CMasterIntClearEx(I2CA0_BASE, I2C_MASTER_INT_RX_FIFO_REQ);
 
 		// Process received data.
-		if (!(MAP_I2CFIFOStatus(I2CA0_BASE) & I2C_FIFO_RX_EMPTY))
+		while (!(MAP_I2CFIFOStatus(I2CA0_BASE) & I2C_FIFO_RX_EMPTY))
 		{
 			// Fetch data from the FIFO.
 			MAP_I2CFIFODataGetNonBlocking(I2CA0_BASE,
@@ -94,8 +93,8 @@ static void I2C_ISR(void)
 			// If we're done reading...
 			if (rxByteCount[I2C0] == rxBytesDone[I2C0])
 			{
-				// If we're done, sent STOP.
-				if (txByteCount[I2C0] == 0)
+				// If we're done, send STOP.
+				if (txByteCount[I2C0] == txBytesDone[I2C0])
 					MAP_I2CMasterControl(I2CA0_BASE,
 						I2C_MASTER_CMD_BURST_RECEIVE_FINISH);
 
@@ -125,57 +124,57 @@ static void I2C_ISR(void)
 			}
 		}
 	}
-	else if (isrSourceMask & I2C_MASTER_INT_TX_FIFO_REQ)
+	else if ((isrSourceMask & I2C_MASTER_INT_TX_FIFO_REQ) ||
+			(isrSourceMask & I2C_MASTER_INT_TX_FIFO_EMPTY))
 	{
-		// Clear the interrupt flag.
+		// Clear the interrupt flag(s).
 		MAP_I2CMasterIntClearEx(I2CA0_BASE, I2C_MASTER_INT_TX_FIFO_REQ);
+		MAP_I2CMasterIntClearEx(I2CA0_BASE, I2C_MASTER_INT_TX_FIFO_EMPTY);
 
-		// Initiate sending of more data (maybe?).
-		if (MAP_I2CFIFOStatus(I2CA0_BASE) & I2C_FIFO_TX_EMPTY)
+		// If we're done with the write...
+		if (txByteCount[I2C0] == txBytesDone[I2C0])
 		{
+			// If we're done, send STOP.
+			if (rxByteCount[I2C0] == rxBytesDone[I2C0])
+			{
+				MAP_I2CMasterControl(I2CA0_BASE, I2C_MASTER_CMD_FIFO_BURST_SEND_ERROR_STOP);
+			}
+
+			// If we're doing a Write-Then-Read, configure the FIFO
+			// and then send a re-START.
+			else
+			{
+				// Set the I2C address + READ bit.
+				MAP_I2CMasterSlaveAddrSet(I2CA0_BASE, i2cAddress, I2C_READ);
+
+				// Set the length of the operation.
+				MAP_I2CMasterBurstLengthSet(I2CA0_BASE, rxByteCount[I2C0]);
+
+				// Initiate I2C read operation.
+				MAP_I2CMasterControl(I2CA0_BASE,
+						I2C_MASTER_CMD_FIFO_BURST_RECEIVE_START |
+						I2C_MASTER_CMD_FIFO_BURST_RECEIVE_ERROR_STOP);
+			}
+
+			// If the associated callback exists, call it.
+			if (CallbackArray[I2C0][I2C_CB_TX] != NULL)
+				CallbackArray[I2C0][I2C_CB_TX](NULL);
+		}
+
+		// If there's more to send...
+		else
+		{
+			// Put more data in the FIFO.
 			MAP_I2CFIFODataPutNonBlocking(I2CA0_BASE,
-				txDataPtr[I2C0][txBytesDone[I2C0]]);
+					txDataPtr[I2C0][txBytesDone[I2C0]]);
 
 			if (txByteCount[I2C0] > txBytesDone[I2C0])
 				txBytesDone[I2C0]++;
-
-			// If we're done with the write...
-			if (txByteCount[I2C0] == txBytesDone[I2C0])
-			{
-				// If we're donw, send STOP.
-				if (rxByteCount[I2C0] == 0)
-					MAP_I2CMasterControl(I2CA0_BASE,
-						I2C_MASTER_CMD_BURST_SEND_FINISH);
-
-				// If we're doing a Write-Then-Read, configure the FIFO
-				// and then send a re-START.
-				else
-				{
-					// Set the I2C address + READ bit.
-					MAP_I2CMasterSlaveAddrSet(I2CA0_BASE, i2cAddress, I2C_READ);
-
-					// Set the length of the operation.
-					MAP_I2CMasterBurstLengthSet(I2CA0_BASE, rxByteCount[I2C0]);
-
-					// Initiate I2C read operation.
-					MAP_I2CMasterControl(I2CA0_BASE,
-						I2C_MASTER_CMD_FIFO_BURST_RECEIVE_START |
-						I2C_MASTER_CMD_FIFO_BURST_RECEIVE_ERROR_STOP);
-				}
-
-				// If the associated callback exists, call it.
-				if (CallbackArray[I2C0][I2C_CB_TX] != NULL)
-					CallbackArray[I2C0][I2C_CB_TX](NULL);
-			}
 		}
 	}
 	else if (isrSourceMask & I2C_MASTER_INT_RX_FIFO_FULL)
 	{
 		MAP_I2CMasterIntClearEx(I2CA0_BASE, I2C_MASTER_INT_RX_FIFO_FULL);
-	}
-	else if (isrSourceMask & I2C_MASTER_INT_TX_FIFO_EMPTY)
-	{
-		MAP_I2CMasterIntClearEx(I2CA0_BASE, I2C_MASTER_INT_TX_FIFO_EMPTY);
 	}
 	else if (isrSourceMask & I2C_MASTER_INT_ARB_LOST)
 	{
@@ -303,8 +302,7 @@ i2cResult_t I2CInit(i2cConfig_t *configPtr)
 		// Reset the I2C peripheral.
 		MAP_PRCMPeripheralReset(PRCM_I2CA0);
 
-		// Initialize the I2C peripheral.
-		// (Also enables master mode.)
+		// Initialize the I2C peripheral (also enables master mode).
 		MAP_I2CMasterInitExpClk(base, I2C_CLOCK_FREQ_HZ, fastModeFlag);
 
 		// Disable master mode (because Enable function will turn it on later).
@@ -315,14 +313,6 @@ i2cResult_t I2CInit(i2cConfig_t *configPtr)
 
 		// Store address for later.
 		i2cAddress = configPtr->slaveAddress;
-
-		// Flush FIFOs.
-//		MAP_I2CTxFIFOFlush(base);
-//		MAP_I2CRxFIFOFlush(base);
-
-		// Enable FIFOs for master.
-//		MAP_I2CTxFIFOConfigSet(base, I2C_FIFO_CFG_TX_MASTER | I2C_FIFO_CFG_TX_TRIG_1);
-//		MAP_I2CRxFIFOConfigSet(base, I2C_FIFO_CFG_RX_MASTER | I2C_FIFO_CFG_RX_TRIG_1);
 	}
 
 	return result;
@@ -342,7 +332,7 @@ i2cResult_t I2CInit(i2cConfig_t *configPtr)
 i2cResult_t I2CEnable(i2cChannel_t channel)
 {
 	uint32_t base;						// I2C registers' base address
-	i2cResult_t result;				// return value
+	i2cResult_t result;					// return value
 
 	// Check for valid index.
 	result = GetI2CBase(channel, &base);
@@ -361,19 +351,15 @@ i2cResult_t I2CEnable(i2cChannel_t channel)
 
 		// Enable interrupts.
 		MAP_I2CMasterIntEnableEx(base,
-//			I2C_MASTER_INT_RX_FIFO_FULL |	// RX FIFO is full
+			I2C_MASTER_INT_RX_FIFO_FULL |	// RX FIFO is full
 			I2C_MASTER_INT_RX_FIFO_REQ |	// RX FIFO service required
-//			I2C_MASTER_INT_TX_FIFO_EMPTY |	// TX FIFO is empty
+			I2C_MASTER_INT_TX_FIFO_EMPTY |	// TX FIFO is empty
 			I2C_MASTER_INT_TX_FIFO_REQ |	// TX FIFO service required
 //			I2C_MASTER_INT_NACK |			// no acknowledgment received
 //			I2C_MASTER_INT_START |			// START sequence received
 //			I2C_MASTER_INT_STOP |			// STOP sequence received
 			I2C_MASTER_INT_TIMEOUT |		// timeout
-			I2C_MASTER_INT_DATA |			// data transaction complete
-			I2C_MASTER_INT_RX_FIFO_REQ |	// FIFO
-			I2C_MASTER_INT_TX_FIFO_REQ |
-			I2C_MASTER_INT_TX_FIFO_EMPTY |
-			I2C_MASTER_INT_RX_FIFO_FULL);
+			I2C_MASTER_INT_DATA);			// data transaction complete
 
 		// Flush FIFOs.
 		MAP_I2CTxFIFOFlush(base);
@@ -438,7 +424,7 @@ i2cResult_t I2CDisable(i2cChannel_t channel)
 i2cResult_t I2CRegisterCallback(i2cChannel_t channel, i2cCbType_t type, i2cCallback_t callbackPtr)
 {
 	uint32_t base;						// dummy variable
-	i2cResult_t result;				// return value
+	i2cResult_t result;					// return value
 
 	// Check for valid index.
 	result = GetI2CBase(channel, &base);
@@ -484,13 +470,11 @@ i2cResult_t I2CEnableCallback(i2cChannel_t channel, i2cCbType_t type)
 	{
 		// Enable "transaction received" callback.
 		rxCallbackEnable[channel] = true;
-//		MAP_I2CMasterIntEnableEx(base, I2C_MASTER_INT_RX_FIFO_FULL | I2C_MASTER_INT_RX_FIFO_REQ);
 	}
 	else if (type == I2C_CB_TX)
 	{
 		// Enable "transmit complete" callback.
 		txCallbackEnable[channel] = true;
-//		MAP_I2CMasterIntEnableEx(base, I2C_MASTER_INT_TX_FIFO_EMPTY | I2C_MASTER_INT_TX_FIFO_REQ);
 	}
 	else if (type == I2C_CB_ARB_LOST)
 	{
@@ -500,8 +484,7 @@ i2cResult_t I2CEnableCallback(i2cChannel_t channel, i2cCbType_t type)
 	else if (type == I2C_CB_NO_ACK)
 	{
 		// Enable "no acknowledgement received" interrupt.
-		noAckCallbackEnable[channel] = true;
-//		MAP_I2CMasterIntEnableEx(base, I2C_MASTER_INT_NACK);
+		MAP_I2CMasterIntEnableEx(base, I2C_MASTER_INT_NACK);
 	}
 	else if (type == I2C_CB_START)
 	{
@@ -551,13 +534,11 @@ i2cResult_t I2CDisableCallback(i2cChannel_t channel, i2cCbType_t type)
 	{
 		// Disable "transaction received" callback.
 		rxCallbackEnable[channel] = true;
-//		MAP_I2CMasterIntDisableEx(base, I2C_MASTER_INT_RX_FIFO_FULL | I2C_MASTER_INT_RX_FIFO_REQ);
 	}
 	else if (type == I2C_CB_TX)
 	{
 		// Disable "transmit complete" callback.
 		txCallbackEnable[channel] = true;
-//		MAP_I2CMasterIntDisableEx(base, I2C_MASTER_INT_TX_FIFO_EMPTY | I2C_MASTER_INT_TX_FIFO_REQ);
 	}
 	else if (type == I2C_CB_ARB_LOST)
 	{
@@ -567,8 +548,7 @@ i2cResult_t I2CDisableCallback(i2cChannel_t channel, i2cCbType_t type)
 	else if (type == I2C_CB_NO_ACK)
 	{
 		// Disable "no acknowledgement received" interrupt.
-		noAckCallbackEnable[channel] = false;
-//		MAP_I2CMasterIntDisableEx(base, I2C_MASTER_INT_NACK);
+		MAP_I2CMasterIntDisableEx(base, I2C_MASTER_INT_NACK);
 	}
 	else if (type == I2C_CB_START)
 	{
@@ -621,7 +601,7 @@ bool I2CIsBusy(i2cChannel_t channel)
 
 /******************************************************************************
  *
- *	@brief		Perform a read transaction on the bus (as a master).
+ *	@brief		Perform a write transaction on the bus (as a master).
  *
  *	@param[in]	channel - index of the I2C peripheral to act upon
  *	@param[in]	dataPtr - array of bytes to write to device
@@ -660,6 +640,7 @@ i2cResult_t I2CWrite(i2cChannel_t channel, uint8_t *dataPtr, uint32_t count)
 
 		// Indicate that we're not reading.
 		rxByteCount[channel] = 0;
+		rxBytesDone[channel] = 0;
 
 		// Set the I2C address + WRITE bit.
 		MAP_I2CMasterSlaveAddrSet(base, i2cAddress, I2C_WRITE);
@@ -680,7 +661,7 @@ i2cResult_t I2CWrite(i2cChannel_t channel, uint8_t *dataPtr, uint32_t count)
 
 /******************************************************************************
  *
- *	@brief		Perform a write transaction on the bus (as a master).
+ *	@brief		Perform a read transaction on the bus (as a master).
  *
  *	@param[in]	channel - index of the I2C peripheral to act upon.
  *	@param[out]	dataPtr - array to read data into
@@ -711,6 +692,7 @@ i2cResult_t I2CRead(i2cChannel_t channel, uint8_t *dataPtr, uint32_t count)
 	{
 		// Indicate that we're not writing.
 		txByteCount[channel] = 0;
+		txBytesDone[channel] = 0;
 
 		// Set RX array start address.
 		rxDataPtr[channel] = dataPtr;
@@ -772,7 +754,7 @@ i2cResult_t I2CWriteThenRead(i2cChannel_t channel, uint8_t *writeDataPtr,
 
 		// Set TX byte count & reset count of bytes sent.
 		txByteCount[channel] = writeCount;
-		txBytesDone[channel] = 0;
+		txBytesDone[channel] = 1;
 
 		// Set RX array start address.
 		rxDataPtr[channel] = readDataPtr;
@@ -813,7 +795,7 @@ i2cResult_t I2CWriteThenRead(i2cChannel_t channel, uint8_t *writeDataPtr,
 i2cResult_t I2CReadThenWrite(i2cChannel_t channel, uint8_t *readDataPtr,
 	uint32_t readCount, uint8_t *writeDataPtr, uint32_t writeCount)
 {
-	i2cResult_t result;				// return value
+	i2cResult_t result;					// return value
 	uint32_t base;						// I2C registers' base address
 
 	//*************************************************************************
@@ -868,9 +850,7 @@ i2cResult_t I2CReadThenWrite(i2cChannel_t channel, uint8_t *readDataPtr,
 
 // First message:  Write to sensor.
 const uint8_t writeMsg[] = {
-	0x02,	// register to access
-	0x74,	// value for register
-	0x00,
+	0xFE,	// register to access
 };
 
 // Second message:  Read from sensor.  This is for the "write-then-read" test.
@@ -890,7 +870,7 @@ i2cResult_t I2CTest(i2cChannel_t channel, uint8_t repeatFlag)
 {
 	i2cResult_t result = I2C_RESULT_OK;	// an optimistic return value :)
 	i2cConfig_t config;					// module config data
-	volatile uint8_t response[1];		// bytes received from EEPROM
+	volatile uint8_t response[2];		// bytes received from sensor
 
 	do	// I'm afraid of goto statements, so I'll use this instead ;}
 	{
@@ -899,7 +879,7 @@ i2cResult_t I2CTest(i2cChannel_t channel, uint8_t repeatFlag)
 		config.speed = I2C_SPEED;
 		config.slaveAddress = I2C_ADDR;
 
-		// Setup the I2C driver with the setup configuration
+		// Setup the I2C driver with the setup configuration.
 		result = I2CInit(&config);
 		if (result != I2C_RESULT_OK)
 			break;
