@@ -1,39 +1,34 @@
-*/******************************************************************************
+/*****************************************************************************
  *
- * 	Filename:	dwyerHAL_ADC.c
+ * 	Filename:		CC3200_ADC.c
  *
- * 	Author:		Adam Johnson
+ * 	Author:			Adam Johnson
  *
- * 	Description:	Implementation for CC3200 internal ADC peripheral.
+ * 	Description:	ADC library for CC3200.  Tested on CC3200 LaunchXL board.
  *
- ******************************************************************************/
+ *****************************************************************************/
 
-#include "rom.h"					// macros to call ROM DriverLib
-#include "rom_map.h"				// macros choose ROM or Flash DriverLib
-#include "hw_memmap.h"				// defines base address of peripherals
-#include "hw_types.h"				// data types required by DriverLib
-#include "prcm.h"					// DriverLib - power reset clock manager
-#include <stdbool.h>				// needed by adc.h, prcm.h
-#include <stdint.h>					// needed by adc.h, prcm.h
-#include <stddef.h>					// defines "NULL"
-#include "adc.h"					// DriverLib - ADC
-#include "CC3200_ADC.h"				// header for this module
+#include "rom.h"						// macros to call ROM DriverLib
+#include "rom_map.h"					// macros choose ROM or Flash DriverLib
+#include "hw_memmap.h"					// defines base address of peripherals
+#include "hw_types.h"					// data types required by DriverLib
+#include <stdbool.h>					// needed by adc.h, prcm.h
+#include <stdint.h>						// needed by adc.h, prcm.h
+#include <stddef.h>						// defines "NULL"
+#include "prcm.h"						// DriverLib - power reset clock manager
+#include "adc.h"						// DriverLib - ADC
+#include "project.h"					// global project settings
+#include "CC3200_ADC.h"					// header for this module
 
-#define MAX_ADC_CHANNELS	4		// number of channels in the ADC block
-#define MAX_ADC_INTERRUPTS	2		// number of items in adcCbType_t
-
-/*******************************************************************************
- * GLOBAL VARIABLES
- ******************************************************************************/
+#define MAX_ADC_CHANNELS	4			// number of channels in the ADC block
+#define MAX_ADC_INTERRUPTS	2			// number of items in adcCbType_t
 
 // The callback function pointer table for callback access
-static ADCCallbackFunc_t CallbackArray[MAX_ADC_INTERRUPTS];
-
-// pointer to most recent configuration settings
-static sADCConfig_t *adcConfigPtr;
+static adcCallback_t CallbackArray[MAX_ADC_INTERRUPTS];
 
 // remembers ADC channel currently in use
-static volatile uint32_t adcActiveChannel;
+static volatile uint32_t adcActiveChannelCode;
+static volatile adcChannel_t adcActiveChannel;
 
 static volatile uint32_t adcNumSamplesDesired;
 static volatile uint32_t adcNumSamplesAcquired;
@@ -56,19 +51,19 @@ void AdcISR (void)
 //	uint32_t voltage;
 
 	// Identify the source of the interrupt by reading Interrupt Status.
-	isrSourceMask = MAP_ADCIntStatus(ADC_BASE, adcActiveChannel);
+	isrSourceMask = MAP_ADCIntStatus(ADC_BASE, adcActiveChannelCode);
 
 	// Clear the interrupt flag.
-	MAP_ADCIntClear(ADC_BASE, adcActiveChannel, isrSourceMask);
+	MAP_ADCIntClear(ADC_BASE, adcActiveChannelCode, isrSourceMask);
 
-	if ((ISMASKSET(isrSourceMask, ADC_FIFO_OVERFLOW) ||
-		(ISMASKSET(isrSourceMask, ADC_FIFO_FULL))))
+	if ((isrSourceMask & ADC_FIFO_OVERFLOW) ||
+		(isrSourceMask & ADC_FIFO_FULL))
 	{
 		// Call callback when conversions are complete.
 		if (adcNumSamplesAcquired >= adcNumSamplesDesired)
 		{
 			// Disable all ADC channels.
-			MAP_ADCChannelDisable(ADC_BASE, adcActiveChannel);
+			MAP_ADCChannelDisable(ADC_BASE, adcActiveChannelCode);
 
 			// Disable the ADC's internal timer.
 			MAP_ADCTimerDisable(ADC_BASE);
@@ -77,7 +72,7 @@ void AdcISR (void)
 			MAP_ADCDisable(ADC_BASE);
 
 			// Unregister interrupt with the timer.
-			MAP_ADCIntUnregister(ADC_BASE, adcActiveChannel);
+			MAP_ADCIntUnregister(ADC_BASE, adcActiveChannelCode);
 
 			// Call a callback if requested.
 			if (CallbackArray[ADC_CB_DONE] != NULL)
@@ -87,9 +82,9 @@ void AdcISR (void)
 		}
 
 		// Read samples if conversion is not complete.
-		else if (MAP_ADCFIFOLvlGet(ADC_BASE, adcActiveChannel))
+		else if (MAP_ADCFIFOLvlGet(ADC_BASE, adcActiveChannelCode))
 		{
-			rawData = MAP_ADCFIFORead(ADC_BASE, adcActiveChannel);
+			rawData = MAP_ADCFIFORead(ADC_BASE, adcActiveChannelCode);
 
 			// Extract the timestamp from the ADC data.
 //			timestamp = (rawData >> 14) & 0x1FFFF;
@@ -99,8 +94,8 @@ void AdcISR (void)
 		}
 	}
 
-	else if ((ISMASKSET(isrSourceMask, ADC_FIFO_UNDERFLOW)) ||
-			 (ISMASKSET(isrSourceMask, ADC_FIFO_EMPTY)))
+	else if ((isrSourceMask & ADC_FIFO_UNDERFLOW) ||
+			 (isrSourceMask & ADC_FIFO_EMPTY))
 	{
 		// Call ADC overrun callback if requested.
 		if (CallbackArray[ADC_CB_ERROR] != NULL)
@@ -111,10 +106,6 @@ void AdcISR (void)
 }
 
 /*******************************************************************************
- * EXPORTED FUNCTIONS
- ******************************************************************************/
-
-/******************************************************************************
  *
  *	Description:	Initialize the specified ADC with the provided settings.
  *
@@ -123,7 +114,7 @@ void AdcISR (void)
  *
  *	Return value:	ADC_RESULT_OK on success; other on failure
  *
- *****************************************************************************/
+ ******************************************************************************/
 
 adcResult_t AdcInit(adcConfig_t *configPtr)
 {
@@ -135,7 +126,7 @@ adcResult_t AdcInit(adcConfig_t *configPtr)
 	//*************************************************************************
 
 	// Check for invalid channel.
-	else if (channel >= ADC_NUM_CHANNELS)
+	if (configPtr->channel >= ADC_NUM_CHANNELS)
 		result = ADC_RESULT_INVALID_SELECTION;
 	
 	// Differential mode is not supported.
@@ -160,7 +151,7 @@ adcResult_t AdcInit(adcConfig_t *configPtr)
 		result = ADC_RESULT_INVALID_SELECTION;
 
 	// Must be 12-bit resolution.
-	else if (configPtr->eResolution != ADC_RES_12)
+	else if (configPtr->resolution != ADC_RES_12)
 		result = ADC_RESULT_INVALID_SELECTION;
 
 	//*************************************************************************
@@ -170,65 +161,8 @@ adcResult_t AdcInit(adcConfig_t *configPtr)
 	{
 		// Enable clock to ADC.
 		MAP_PRCMPeripheralClkEnable(PRCM_ADC, PRCM_RUN_MODE_CLK);
-
-		// Store the pointer to the configuration settings, so we can access
-		// them in other functions.
-		adcConfigPtr = configPtr;
 	}
 	
-	return (ADCHandle_t)handle;
-}
-
-/******************************************************************************
- *
- *	Description:	Enable the specified ADC peripheral. The ADC must have
- *					already been initialized with ADCInit().
- *
- *	Parameters:		channel - ADC channel to act upon
- *
- *	Return value:	ADC_RESULT_OK on success; other on failure
- *
- *****************************************************************************/
-
-adcResult_t AdcEnable(adcChannel_t channel)
-{
-	adcResult_t result = ADC_RESULT_OK;	// an optimistic return value :)
-
-	// Check for invalid channel.
-	if (channel >= ADC_NUM_CHANNELS)
-		result = ADC_RESULT_INVALID_SELECTION;
-	
-	else
-	{
-		// Do nothing here.  It's all handled in the Read functions.
-	}
-	
-	return result;
-}
-
-/******************************************************************************
- *
- *	Description:	Disable the specified ADC peripheral.
- *
- *	Parameters:		channel - ADC channel to act upon
- *
- *	Return value:	ADC_RESULT_OK on success; other on failure
- *
- *****************************************************************************/
-
-adcResult_t AdcDisable(adcChannel_t channel)
-{
-	adcResult_t result = ADC_RESULT_OK;	// an optimistic return value :)
-
-	// Check for invalid channel.
-	if (channel >= ADC_NUM_CHANNELS)
-		result = ADC_RESULT_INVALID_SELECTION;
-
-	else
-	{
-		// Do nothing.  It's all handled in the Read and ISR functions.
-	}
-
 	return result;
 }
 
@@ -258,7 +192,7 @@ adcResult_t AdcSetCallback(adcChannel_t channel, adcCbType_t type,
 	{
 		// Register user callback.
 		// If the callback is NULL, that's how we unregister.
-		CallbackArray[type] = CallbackFunc;
+		CallbackArray[type] = Callback;
 	}
 	
 	return result;
@@ -269,34 +203,35 @@ adcResult_t AdcSetCallback(adcChannel_t channel, adcCbType_t type,
  *	Description:	Start reading from the ADC and store in the provided buffer.
  *
  *	Parameters:		channel - ADC channel to act upon
- *					sampleBuffer - pointer to buffer to store the ADC readings
+ *					sampleArray - pointer to buffer to store the ADC readings
  *					numSamples - number of ADC samples to take
  *
  *	Return value:	ADC_RESULT_OK on success; other on failure
  *
  *****************************************************************************/
 
-adcResult_t AdcReadSamples(adcChannel_t channel, ADCSample_t *sampleArray, uint32_t numSamples)
+adcResult_t AdcReadSamples(adcChannel_t channel, adcSample_t *sampleArray, uint32_t numSamples)
 {
 	adcResult_t result = ADC_RESULT_OK;	// an optimistic return value :)
 	
 	// Remember the channel setting for later.
+	adcActiveChannel = channel;
 	switch(channel)
 	{
-		case ADC_MuxADC0:
-			adcActiveChannel = ADC_CH_0;
+		case ADC0:
+			adcActiveChannelCode = ADC_CH_0;
 			break;
 
-		case ADC_MuxADC1:
-			adcActiveChannel = ADC_CH_1;
+		case ADC1:
+			adcActiveChannelCode = ADC_CH_1;
 			break;
 
-		case ADC_MuxADC2:
-			adcActiveChannel = ADC_CH_2;
+		case ADC2:
+			adcActiveChannelCode = ADC_CH_2;
 			break;
 
-		case ADC_MuxADC3:
-			adcActiveChannel = ADC_CH_3;
+		case ADC3:
+			adcActiveChannelCode = ADC_CH_3;
 			break;
 		
 		default:
@@ -311,10 +246,10 @@ adcResult_t AdcReadSamples(adcChannel_t channel, ADCSample_t *sampleArray, uint3
 			adcNumSamplesAcquired = 0;
 			
 			// Store pointer so that samples are stored to the right location.
-			adcSamplesArray = sampleBuffer;
+			adcSamplesArray = sampleArray;
 
 			// Enable the desired channel.
-			MAP_ADCChannelEnable(ADC_BASE, adcActiveChannel);
+			MAP_ADCChannelEnable(ADC_BASE, adcActiveChannelCode);
 
 			// Set the wrap-around value of the ADC's timer, a 17 bit
 			// internal timer used to timestamp the ADC data samples internally.
@@ -330,8 +265,8 @@ adcResult_t AdcReadSamples(adcChannel_t channel, ADCSample_t *sampleArray, uint3
 			MAP_ADCEnable(ADC_BASE);
 
 			// Start conversions.
-			MAP_ADCIntEnable(ADC_BASE, adcActiveChannel, ADC_FIFO_UNDERFLOW | ADC_FIFO_FULL);
-			MAP_ADCIntRegister(ADC_BASE, adcActiveChannel, AdcISR);
+			MAP_ADCIntEnable(ADC_BASE, adcActiveChannelCode, ADC_FIFO_UNDERFLOW | ADC_FIFO_FULL);
+			MAP_ADCIntRegister(ADC_BASE, adcActiveChannelCode, AdcISR);
 	}
 		
 	return result;
@@ -348,15 +283,15 @@ adcResult_t AdcReadSamples(adcChannel_t channel, ADCSample_t *sampleArray, uint3
  *
  *****************************************************************************/
 
-adcResult_t AdcReadSample(adcChannel_t channel, ADCSample_t *sample)
+adcResult_t AdcReadSample(adcChannel_t channel, adcSample_t *sample)
 {
-	return AdcReadSamples(handle, sample, 1);
+	return AdcReadSamples(channel, sample, 1);
 }
 
 /************************************************************************/
 /* ADC Test Functions                                                   */
 /************************************************************************/
-#if INCLUDE_ADC_TEST_FUNCTION
+#ifdef INCLUDE_TEST
 
 #define TEST_ADC_NUM_SAMPLES		16
 
@@ -367,16 +302,21 @@ void AdcTestCallback(adcChannel_t channel)
 	testCompleteFlag = true;
 }
 
-/* @brief Test the ADC HAL layer
- * @return ADCResultOK on success, ADCResultFail on failure.
- */
-adcResult_t AdcTest(void)
+/******************************************************************************
+ *
+ *	Description:	Test the ADC driver.
+ *
+ *	Return Value:	ADCResultOK on success, other on failure.
+ *
+ *****************************************************************************/
+
+adcResult_t AdcTest(adcChannel_t channel)
 {
 	adcResult_t result = ADC_RESULT_OK;	// an optimistic return value :)
 	adcConfig_t config;
 	adcSample_t sampleArray[TEST_ADC_NUM_SAMPLES];
 	
-	config.channel = ADC1;
+	config.channel = channel;
 	config.gain = ADC_GAIN_1;
 	config.reference = ADC_REF_1_5V;
 	config.resolution = ADC_RES_12;
@@ -388,11 +328,6 @@ adcResult_t AdcTest(void)
 	{
 		// Initialize the ADC.
 		result = AdcInit(&config);
-		if (result != ADC_RESULT_OK)
-			break;
-
-		// Enable the ADC.
-		result = AdcEnable(ADC1);
 		if (result != ADC_RESULT_OK)
 			break;
 			
@@ -409,11 +344,6 @@ adcResult_t AdcTest(void)
 			
 		// Wait for the ADC to complete.
 		while (testCompleteFlag == false){}
-		
-		// Disable the ADC.
-		result = AdcDisable(ADC1);
-		if (result != ADC_RESULT_OK)
-			break;
 			
 		// Unregister the read complete callback.
 		result = AdcSetCallback(ADC1, ADC_CB_DONE, NULL);

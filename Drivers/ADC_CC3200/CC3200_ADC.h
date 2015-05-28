@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *	Filename:		dwyerHAL_ADC.h
+ *	Filename:		CC3200_ADC.h
  *
  *	Author:			Adam Johnson
  *
@@ -8,11 +8,8 @@
  *
  *****************************************************************************/
 
-
 #ifndef CC3200_ADC_H
 #define CC3200_ADC_H
-
-typedef void (*adcCallback_t)(adcChannel_t);	// prototype for callback functions
 
 typedef uint16_t adcSample_t;			// ADC result type
 
@@ -37,9 +34,7 @@ typedef enum							// ADC resolution settings
 
 typedef enum							// ADC mode settings
 {
-	ADC_MODE_SINGLE,					// Do a single conversion.
 	ADC_MODE_CONTINUOUS,				// Convert continuously.
-	ADC_MODE_BURST,
 } adcMode_t;
 
 typedef enum							// ADC reference settings
@@ -72,15 +67,15 @@ typedef struct							// configuration structure
 	bool leftAdjust;					// TRUE = left justified results
 } adcConfig_t;
 
+typedef void (*adcCallback_t)(adcChannel_t channel);	// prototype for callback functions
+
 adcResult_t AdcInit(adcConfig_t *configPtr);
-adcResult_t AdcEnable(adcChannel_t channel);
-adcResult_t AdcDisable(adcChannel_t channel);
 adcResult_t AdcSetCallback(adcChannel_t channel, adcCbType_t type, adcCallback_t Callback);
-adcResult_t AdcReadSamples(adcChannel_t channel, ADCSample_t *sampleArray, uint32_t numSamples);
-adcResult_t AdcReadSample(adcChannel_t channel, ADCSample_t *sample);
+adcResult_t AdcReadSamples(adcChannel_t channel, adcSample_t *sampleArray, uint32_t numSamples);
+adcResult_t AdcReadSample(adcChannel_t channel, adcSample_t *sample);
 
 #ifdef INCLUDE_TEST
-adcResult_t AdcTest(void);
+adcResult_t AdcTest(adcChannel_t channel);
 #endif
 
 #endif /* CC3200_ADC_H */
