@@ -27,3 +27,7 @@
 *.i*86
 *.x86_64
 *.hex
+/Examples/CC3200-I2CSample/Debug
+/Examples/CC3200-I2CSample/Release
+/Examples/CC3200-I2CSample/.launches
+/Examples/CC3200-I2CSample/.settings
