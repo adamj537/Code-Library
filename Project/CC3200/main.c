@@ -78,8 +78,10 @@ int main(void)
 {
 	Setup();							// Initialize the processor.
 
-//	I2CTest(I2C0, false);				// Test I2C driver.
+#ifdef INCLUDE_TEST
+	I2CTest(I2C0, false);				// Test I2C driver.
 	AdcTest(ADC1);						// Test ADC driver.
-	
+#endif
+
 	while (1);							// Stay here forever.
 }

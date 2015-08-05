@@ -7,7 +7,7 @@
 #ifndef __MSP430WARE_FLASHMEM_H__
 #define __MSP430WARE_FLASHMEM_H__
 
-#ifdef __MSP430_HAS_FLASH__
+#ifdef __MSP430_HAS_FLASH__				// Include this only if we have flash.
 
 //*****************************************************************************
 //

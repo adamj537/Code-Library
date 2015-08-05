@@ -1,54 +1,44 @@
-#ifndef GPIO__H
-#define GPIO__H
+#ifndef MSP430_GPIO_H
+#define MSP430_GPIO_H
 
-/*****************************************************************************
-** TYPEDEFS AND STRUCTURES
-*****************************************************************************/
-
-typedef enum							// pin levels
-{
-	GPIOPinValueLow,
-	GPIOPinValueHigh
-} GPIOlevel_t;
+/******************************************************************************
+ * TYPEDEFS AND STRUCTURES
+ *****************************************************************************/
 
 typedef enum							// pin direction
 {
-	GPIODirectionInput,
-	GPIODirectionOutput,
-	GPIODirectionInputOutput
+	GPIO_DIR_IN,						// input mode
+	GPIO_DIR_OUT,						// output mode
+	GPIO_DIR_BOTH						// bidirectional mode
 } GPIOdir_t;
 
 typedef enum							// pin pull
 {
-	GPIOPinPullNone,
-	GPIOPinPullUp,
-	GPIOPinPullDown
+	GPIO_PULL_NONE,						// no resistors
+	GPIO_PULL_UP,						// use pull-up resistors
+	GPIO_PULL_DOWN						// use pull-down resistors
 } GPIOpull_t;
 
-typedef enum							// pin interrupt sensitivity
+typedef enum							// pin interrupt type
 {
-	GPIOIntDetectNone,
-	GPIOIntDetectEdgeRising,
-	GPIOIntDetectEdgeFalling,
-	GPIOIntDetectEdgeBoth,
-	GPIOIntDetectLevelHigh,
-	GPIOIntDetectLevelLow
-} GPIOIntDetect_t;
+	GPIO_INT_NONE,						// disabled
+	GPIO_INT_EDGE_RISING,				// low-to-high transition
+	GPIO_INT_EDGE_FALLING,				// high-to-low transition
+	GPIO_INT_EDGE_BOTH,					// any transition
+	GPIO_INT_LEVEL_HIGH,				// interrupt whenever we're high
+	GPIO_INT_LEVEL_LOW					// interrupt whenever we're low
+} GPIOIntType_t;
 
 typedef enum							// GPIO status
 {
-	GPIOResultOK = 0,
-	GPIOResultFail,
-	GPIOResultNotImplemented,
-	GPIOResultInvalidSelection
+	GPIO_RESULT_OK = 0,					// All is well!
+	GPIO_RESULT_FAIL,					// It's the target's fault.
+	GPIO_RESULT_NOT_IMPLEMENTED,		// It's my fault.
+	GPIO_RESULT_INVALID_SELECTION		// It's your fault.
 } GPIOResult_t;
 
-/*!
- * This enumeration produces valid indexes for GPIO ports which are
- * enabled by the application configuration. These enumeration values should
- * NOT be used directly by the caller of GPIO functions. Instead, the application
- * should use a #define to create an association to the desired port.
- */
+// This enumeration produces valid indexes for GPIO ports which are enabled by
+// the application configuration.
 typedef enum {
 	GPIO_PORTA = 0,
 	GPIO_PORTB,
@@ -62,154 +52,49 @@ typedef enum {
 	GPIO_PORTJ,
 	GPIO_PORTK,
 	GPIO_PORTL
-} eGPIOPort_t;
+} GPIOPort_t;
 
-/*! GPIO Interrupt callback function prototype */
+// GPIO Port pin configuration structure.
+typedef struct {
+	uint32_t function;		// index of the peripheral that should control the pin
+	GPIOdir_t direction;	// Port buffer input/output direction. 
+	GPIOpull_t inputPull;	// Logic level pull of the input buffer. 
+	BOOL powersave;			// Enable the lowest possible power state on the pin (All other configurations will be ignored, the pin will be disabled)
+} GPIOConfig_t;
+
+// Configuration structure for the edge detection mode of an external interrupt
+typedef struct {
+	uint32_t function;					// MUX position the GPIO pin should be configured to. 
+	GPIOpull_t inputPull;				// Internal pull to enable on the input pin. 
+	BOOL wakeIfSleeping;				// Wake up the device if the channel interrupt fires during sleep mode.
+	BOOL ui32_FilterInputSignal;		// Filter the raw input signal to prevent noise from triggering an interrupt accidentally 
+	GPIOIntType_t DetectionCriteria;	// Edge detection mode to use.
+} GPIOIntConfig_t;
+
+// GPIO Interrupt callback function prototype
 typedef void (*GPIOIntCallback_t)(void);
 
-/* GPIO Port pin configuration structure.
- * Configuration structure for a port pin instance.
- */
-typedef struct {
-	uint32_t ui32_MuxPosition;		//<! MUX index of the peripheral that should control the pin 
-	uint32_t ui32_Direction;		//<! Port buffer input/output direction. 
-	uint32_t ui32_InputPull;		//<! Logic level pull of the input buffer. 
-	uint32_t ui32_Powersave;		//<! Enable the lowest possible power state on the pin (All other configurations will be ignored, the pin will be disabled)
-} sGPIOConfig_t;
+// Port Initialization Functions
+GPIOResult_t GPIOInit(GPIOPort_t port);
+GPIOResult_t GPIODeinit(GPIOPort_t port);
 
-/* External channel configuration structure.
- * Configuration structure for the edge detection mode of an external
- * interrupt channel.
- */
-typedef struct {
-	uint32_t ui32_MuxPosition;			//<! MUX position the GPIO pin should be configured to. 
-	uint32_t ui32_InputPull;			//<! Internal pull to enable on the input pin. 
-	uint32_t ui32_WakeIfSleeping;		//<! Wake up the device if the channel interrupt fires during sleep mode.
-	uint32_t ui32_FilterInputSignal;	//<! Filter the raw input signal to prevent noise from triggering an interrupt accidentally 
-	uint32_t ui32_DetectionCriteria;	//<! Edge detection mode to use.
-} sGPIOIntConfig_t;
+// Port Oriented Functions
+GPIOResult_t GPIOConfigPort(GPIOPort_t port, GPIOPortSize_t mask, GPIOConfig_t *configPtr);
+GPIOPortSize_t GPIOReadPort(GPIOPort_t port, GPIOPortSize_t mask);
+GPIOResult_t GPIOWritePort(GPIOPort_t port, GPIOPortSize_t mask, uint8_t ui8_portValue);
+GPIOResult_t GPIOTogglePort(GPIOPort_t port, GPIOPortSize_t mask);
 
-/************************************************************************/
-/* Port Initialization Functions										*/
-/************************************************************************/
-/*!
-* @brief Initialize the selected GPIO port
-* @param[in] ui32_GpioPort The index/identifier of the GPIO port to initialize
-* @return GPIOResultOK on success, GPIOResultFail on failure
-*/
-eGPIOResult_t GPIOInit(eGPIOPort_t eGP_gpioPort);
-/*!
-* @brief Uninitialize the selected GPIO port
-* @param[in] ui32_GpioPort The index/identifier of the GPIO port to uninitialize.
-* @return GPIOResultOK on success, GPIOResultFail on failure
-*/
-eGPIOResult_t GPIODeinit(eGPIOPort_t eGP_gpioPort);
+// Pin Oriented Functions
+GPIOResult_t GPIOConfigPin(GPIOPort_t port, GPIOPortSize_t pin, GPIOConfig_t *configPtr);
+uint8_t GPIOReadPin(GPIOPort_t port, GPIOPortSize_t pin);
+GPIOResult_t GPIOWritePin(GPIOPort_t port, GPIOPortSize_t pin, uint8_t value);
+GPIOResult_t GPIOTogglePin(GPIOPort_t port, GPIOPortSize_t pin);
 
-/************************************************************************/
-/* Port Oriented Functions												*/
-/************************************************************************/
-/*!
-* @brief Configure the pins specified by mask in the selected port
-* @param[in] eGP_gpioPort The index/identifier of the GPIO port to configure
-* @param[in] gPS_Mask The specific pins within the port to configure
-* @param[in] sPtr_GpioConfig A pointer to a sGpioConfig_t
-* @return GPIOResultOK on success, GPIOResultInvalidSelection on failure
-*/
-eGPIOResult_t GPIOConfigPort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_Mask, sGPIOConfig_t *sPtr_gpioConfig);
-/*!
-* @brief Read the state of the pins in the specified port with respect to the mask
-* that are configured as inputs.
-* @param[in] eGP_gpioPort The index/identifier of the GPIO port to read
-* @param[in] gPS_Mask A bit mask of pins to read from the port
-* @return The value of the pins of the port in the mask that are configured as inputs
-*/
-GPIOPortSize_t GPIOReadPort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask);
-/*!
- * @brief Write the value of the pins in the specified port with respect to the mask
- *  that are configured as outputs.
- * @param[in] eGP_gpioPort The index/identifier of the GPIO port to write
- * @param[in] gPS_Mask A bit mask of pins to write in the port
- * @param[in] ui8_PortValue The value to write to the masked pins.
- * @return GPIOResultOK on success, GPIOResultInvalidSelection on failure
- */
-eGPIOResult_t GPIOWritePort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask, uint8_t ui8_portValue);
-/*!
- * @brief Toggle the state of the pins in the specified port with respect to the mask
- * that are configured as outputs.
- * @param[in] eGP_gpioPort The index/identifier of the GPIO port to Toggle
- * @param[in] gPS_Mask A bit mask of pins to toggle on the port
- * @return GPIOResultOK on success, GPIOResultInvalidSelection on failure
- */
-eGPIOResult_t GPIOTogglePort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask);
+// Interrupt Configuration Functions
+GPIOResult_t GPIOConfigInterrupt(GPIOPort_t port, GPIOPortSize_t pin, GPIOIntConfig_t *configPtr, GPIOIntCallback_t callbackPtr);
+GPIOResult_t GPIOEnableInterrupt(GPIOPort_t port, GPIOPortSize_t pin);
+GPIOResult_t GPIODisableInterrupt(GPIOPort_t port, GPIOPortSize_t pin);
 
-/************************************************************************/
-/* Pin Oriented Functions												*/
-/************************************************************************/
-/*!
-* @brief Configure a single pin in the specified port.
-* @param[in] eGP_gpioPort The index/identifier of the GPIO port the pin belongs to.
-* @param[in] eGP_GpioPin The index/identifier of the GPIO pin to configure
-* @param[in] sPtr_GpioConfig A pointer to a sGpioConfig_t
-* @return GPIOResultOK on success, GPIOResultInvalidSelection on failure
-*/
-eGPIOResult_t GPIOConfigPin(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t eGP_gpioPin, sGPIOConfig_t *sPtr_gpioConfig);
-/*!
- * @brief Read the state of the pin specified (if input)
- * @param[in] eGP_gpioPort The index/identifier of the GPIO port to read
- * @param[in] ePS_gpioPin The index/identifier of the GPIO pin to read
- * @return The value of the pin (if input)
- */
-uint8_t GPIOReadPin(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t ePS_gpioPin);
-/*!
- * @brief Write the value of the pin specified (if an output)
- * @param[in] eGP_gpioPort The index/identifier of the GPIO port to write
- * @param[in] eGP_GpioPin The index/identifier of the GPIO pin to write
- * @param[in] ui8_PinValue The value to write to the pin.
- * @return GPIOResultOK on success, GPIOResultInvalidSelection on failure
- */
-eGPIOResult_t GPIOWritePin(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t eGP_gpioPin, uint8_t ui8_pinValue);
-/*!
-* @brief Toggle the state of the pin specified (if configured as output)
-* @param[in] eGP_gpioPort The index/identifier of the GPIO port to Toggle
-* @param[in] eGP_GpioPin The index/identifier of the GPIO pin to Toggle
-* @return GPIOResultOK on success, GPIOResultInvalidSelection on failure
-*/
-eGPIOResult_t GPIOTogglePin(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t eGP_gpioPin);
+GPIOResult_t GPIOTest(void);
 
-/************************************************************************/
-/* Interrupt Configuration Functions									*/
-/************************************************************************/
-/*!
- * @brief Configure a GPIO pin as an external interrupt source and register a callback function or unregister
- *  a previously registered callback function.
- * @param[in] eGP_gpioPort The index/identifier of the GPIO port to configure.
- * @param[in] eGP_GpioPin The index/identifier of the GPIO pin to configure.
- * @param[in] sPtr_GpioIntConfig A pointer to a sGPIOIntConfig_t structure with the desired pin/interrupt configuration
- * @param[in] funcPtr_GpioCallback A pointer to a function that will receive the interrupt, or NULL to unregister the callback function
- * @return GPIOResultOK on success, GPIOResultFail on failure
- */
-eGPIOResult_t GPIOConfigInterrupt(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t eGP_gpioPin, sGPIOIntConfig_t *sPtr_gpioIntConfig, GPIOIntCallback_t funcPtr_GpioCallback);
-/*!
- * @brief Enable the interrupt for the specified pin. (Must be configured first!)
- * @param[in] eGP_gpioPort The index/identifier of the GPIO port to enable the interrupt for.
- * @param[in] eGP_GpioPin The index/identifier of the GPIO pin to enable the interrupt for.
- * @return GPIOResultOK on success, GPIOResultInvalidSelection on failure.
- */
-eGPIOResult_t GPIOEnableInterrupt(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t eGP_gpioPin);
-/*!
- * @brief Disable the interrupt for the specified pin. 
- * @param[in] eGP_gpioPort The index/identifier of the GPIO port to enable the interrupt for.
- * @param[in] eGP_GpioPin The index/identifier of the GPIO pin to disable the interrupt for.
- * @return GPIOResultOK on success, GPIOResultInvalidSelection on failure.
- */
-eGPIOResult_t GPIODisableInterrupt(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t eGP_gpioPin);
-
-/************************************************************************/
-/* Test Functions                                                       */
-/************************************************************************/
-eGPIOResult_t GPIOTest(void);
-
-/*! @} */ /* End of expfuncs group. */
-
-
-#endif /* HAL_GPIO_H_ */
+#endif /* MSP430_GPIO_H */

@@ -1,15 +1,16 @@
 //*****************************************************************************
 //
-// FlashMem.c - Driver for the flashctl Module.
+// MSP430_Flash.c - Driver for the flashctl Module of the CC3200.
 //
 //*****************************************************************************
 
-#include <msp430.h>						// required by development platform
-#include "Datatypes.h"					// compiler-specific data types
-#include "Bitlogic.h"					// handy defines that make life easier
+#ifdef __MSP430_HAS_FLASH__				// Include this only if we have flash.
 
-#ifdef __MSP430_HAS_FLASH__
-#include "FlashMem.h"
+#include <msp430.h>						// required by development platform
+#include <stdbool.h>					// defines "bool", "true", "false"
+#include <stdint.h>						// defines standard data types
+#include "Bitlogic.h"					// handy defines that make life easier
+#include "MSP430_Flash.h"				// header for this driver
 
 //*****************************************************************************
 //

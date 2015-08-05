@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *	Filename:		GPIO.c
+ *	Filename:		MSP430_GPIO.c
  *
  *	Author:			Adam Johnson
  *
@@ -48,7 +48,6 @@
 #include <stdint.h>						// compiler-specific data types
 #include "Main.h"						// global settings; driver configuration
 #include "Bitlogic.h"					// handy macros that make life easier
-#include "mathUtils.h"
 #include "GPIO.h"						// header for this module
 
 #define MAX_GPIO_INT_PORT	4			// only ports 1-4 can interrupt
@@ -60,25 +59,15 @@
 #define HWREG8(x)			(*((volatile uint8_t *)((uint16_t)x)))
 
 // GPIO Register Offsets
-#define GPIO_REG_IN			(0x0000)		// Input Register
-#define GPIO_REG_OUT		(0x0002)		// Output Register
-#define GPIO_REG_DIR		(0x0004)		// Direction Register
-#define GPIO_REG_REN		(0x0006)		// Resistor Enable Register
-#define GPIO_REG_DS			(0x0008)		// Drive Strength Register
-#define GPIO_REG_SEL		(0x000A)		// Function Selection Register
-#define GPIO_REG_IES		(0x0018)		// Interrupt Edge Select Register
-#define GPIO_REG_IE			(0x001A)		// Interrupt Enable Register
-#define GPIO_REG_IFG		(0x001C)		// Interrupt Flag Register
-
-/*****************************************************************************
-** PROTOTYPES OF LOCAL FUNCTIONS
-*****************************************************************************/
-
-#ifdef INCLUDE_TEST
-
-void GPIOTestCallback(void);
-
-#endif
+#define GPIO_REG_IN			0x0000		// Input Register
+#define GPIO_REG_OUT		0x0002		// Output Register
+#define GPIO_REG_DIR		0x0004		// Direction Register
+#define GPIO_REG_REN		0x0006		// Resistor Enable Register
+#define GPIO_REG_DS			0x0008		// Drive Strength Register
+#define GPIO_REG_SEL		0x000A		// Function Selection Register
+#define GPIO_REG_IES		0x0018		// Interrupt Edge Select Register
+#define GPIO_REG_IE			0x001A		// Interrupt Enable Register
+#define GPIO_REG_IFG		0x001C		// Interrupt Flag Register
 
 /*****************************************************************************
 ** GLOBAL VARIABLES
@@ -245,58 +234,54 @@ static const uint8_t gpioPortHasResistors[] = {
 #endif
 };
 
-// Flags for "GPIOIntDetectEdgeBoth" software emulation (one bit per pin).
+// Flags for "GPIO_INT_EDGE_BOTH" software emulation (one bit per pin).
 static uint8_t GPIOIntDetectEdgeBothFlags[MAX_GPIO_INT_PORT];
 
 // Callback functions for interrupts
 static GPIOIntCallback_t GPIOCallbackFuncs[MAX_GPIO_INT_PORT][MAX_GPIO_PIN];
 
-/*****************************************************************************
-** EXPORTED FUNCTIONS
-*****************************************************************************/
-
 /*
 * @brief Initialize the selected GPIO port
-* @param[in]  ui32_GpioPort The index/identifier of the GPIO port to initialize
-* @return GPIOResultOK on success, GPIOResultFail on failure
+* @param[in]  port The index/identifier of the GPIO port to initialize
+* @return GPIO_RESULT_OK on success, GPIO_RESULT_FAIL on failure
 */
-eGPIOResult_t GPIOInit(eGPIOPort_t eGP_gpioPort)
+GPIOResult_t GPIOInit(GPIOPort_t port)
 {
 	// TODO:	Perhaps this should set all GPIO according to recommendations
 	//			for unused pins?
 
-	return GPIOResultOK;
+	return GPIO_RESULT_OK;
 }
 
 /*
 * @brief Uninitialize the selected GPIO port
-* @param[in]  ui32_GpioPort The index/identifier of the GPIO port to uninitialize.
-* @return GPIOResultOK on success, GPIOResultFail on failure
+* @param[in]  port The index/identifier of the GPIO port to uninitialize.
+* @return GPIO_RESULT_OK on success, GPIO_RESULT_FAIL on failure
 */
-eGPIOResult_t GPIODeinit(eGPIOPort_t eGP_gpioPort)
+GPIOResult_t GPIODeinit(GPIOPort_t port)
 {
 	// TODO:	Perhaps this should set all GPIO according to recommendations
 	//			for unused pins?
 
-	return GPIOResultOK;
+	return GPIO_RESULT_OK;
 }
 
 /*
 * @brief Configure the pins specified by mask in the selected port
-* @param[in]  ui32_gpioPort The index/identifier of the GPIO port to configure
-* @param[in]  gPS_mask The specific pins within the port to configure
-* @param[in]  sPtr_gpioConfig A pointer to a sGpioConfig_t
-* @return GPIOResultOK on success, GPIOResultInvalidSelection on failure
+* @param[in]  port The index/identifier of the GPIO port to configure
+* @param[in]  mask The specific pins within the port to configure
+* @param[in]  configPtr A pointer to a sGpioConfig_t
+* @return GPIO_RESULT_OK on success, GPIO_RESULT_INVALID_SELECTION on failure
 */
-eGPIOResult_t GPIOConfigPort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask, sGPIOConfig_t *sPtr_gpioConfig)
+GPIOResult_t GPIOConfigPort(GPIOPort_t port, GPIOPortSize_t mask, GPIOConfig_t *configPtr)
 {
-	eGPIOResult_t eResult = GPIOResultInvalidSelection;	// return value from function
+	GPIOResult_t result = GPIO_RESULT_INVALID_SELECTION;	// return value from function
 	uint16_t baseAddress;								// address of port's registers
 	uint16_t wordMask;									// mask converted to work with 16-bit registers
 
 	// Fetch the base address of the port's registers.
-	if (eGP_gpioPort < mathUtils_ArraySize(gpioPortToBaseAddress, uint16_t))
-		baseAddress = gpioPortToBaseAddress[eGP_gpioPort];
+	if (port < mathUtils_ArraySize(gpioPortToBaseAddress, uint16_t))
+		baseAddress = gpioPortToBaseAddress[port];
 	else
 		baseAddress = 0xFFFF;
 	
@@ -304,18 +289,18 @@ eGPIOResult_t GPIOConfigPort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask, 
 	if(baseAddress != 0xFFFF)
 	{
 		// Shift by 8 if port is odd (upper 8-bits).
-		if (eGP_gpioPort & 1)
+		if (port & 1)
 		{
-			wordMask = gPS_mask << 8;
+			wordMask = mask << 8;
 		}
 		// Don't alter the mask if the port is even.
 		else
 		{
-			wordMask = gPS_mask;
+			wordMask = mask;
 		}
 
 		// PowerSave Mode overrides other settings.
-		if (sPtr_gpioConfig->ui32_Powersave == TRUE)
+		if (configPtr->ui32_Powersave == TRUE)
 		{
 			//Configure the unused pin as GPIO.
 			CLEARMASK(HWREG16(baseAddress + GPIO_REG_SEL), wordMask);
@@ -329,7 +314,7 @@ eGPIOResult_t GPIOConfigPort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask, 
 		else
 		{
 			// Set the pins' function.
-			if (sPtr_gpioConfig->ui32_MuxPosition == 0)
+			if (configPtr->ui32_MuxPosition == 0)
 			{
 				CLEARMASK(HWREG16(baseAddress + GPIO_REG_SEL), wordMask);
 			}
@@ -339,7 +324,7 @@ eGPIOResult_t GPIOConfigPort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask, 
 			}
 
 			// Set the pin direction.
-			if (sPtr_gpioConfig->ui32_Direction == GPIODirectionInput)
+			if (configPtr->ui32_Direction == GPIO_DIR_IN)
 			{
 				// Set the pin as input.
 				CLEARMASK(HWREG16(baseAddress + GPIO_REG_DIR), wordMask);
@@ -351,15 +336,15 @@ eGPIOResult_t GPIOConfigPort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask, 
 			}
 
 			// Check if pull-up/down resistors exist on the port.
-			if (gpioPortHasResistors[eGP_gpioPort] == TRUE)
+			if (gpioPortHasResistors[port] == TRUE)
 			{
 				// Enable pull-up/down resistors if requested.
-				if (sPtr_gpioConfig->ui32_InputPull == GPIOPinPullNone)
+				if (configPtr->ui32_InputPull == GPIO_PULL_NONE)
 				{
 					// Disable resistors.
 					CLEARMASK(HWREG16(baseAddress + GPIO_REG_REN), wordMask);
 				}
-				else if (sPtr_gpioConfig->ui32_InputPull == GPIOPinPullUp)
+				else if (configPtr->ui32_InputPull == GPIO_PULL_UP)
 				{
 					// Enable resistors.
 					SETMASK(HWREG16(baseAddress + GPIO_REG_REN), wordMask);
@@ -367,7 +352,7 @@ eGPIOResult_t GPIOConfigPort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask, 
 					// Select pull-up direction.
 					SETMASK(HWREG16(baseAddress + GPIO_REG_OUT), wordMask);
 				}
-				else if (sPtr_gpioConfig->ui32_InputPull == GPIOPinPullDown)
+				else if (configPtr->ui32_InputPull == GPIO_PULL_DOWN)
 				{
 					// Enable resistors.
 					SETMASK(HWREG16(baseAddress + GPIO_REG_REN), wordMask);
@@ -380,54 +365,54 @@ eGPIOResult_t GPIOConfigPort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask, 
 			// Clear interrupt flag register.  According to the user manual,
 			// writing to PxOUT, PxDIR, PxREN can result in setting the
 			// corresponding PxIFG flag.
-			if (eGP_gpioPort < MAX_GPIO_INT_PORT)
+			if (port < MAX_GPIO_INT_PORT)
 			{
 				CLEARMASK(HWREG16(baseAddress + GPIO_REG_IFG), wordMask);
 			}
 		}
 
-		eResult = GPIOResultOK;
+		result = GPIO_RESULT_OK;
 	}
 	
-	return eResult;
+	return result;
 }
 
 /*
 * @brief Configure a single pin in the specified port.
-* @param[in]  ui32_gpioPort The index/identifier of the GPIO port the pin belongs to.
-* @param[in]  gPS_gpioPin The index/identifier of the GPIO pin to configure
-* @param[in]  sPtr_gpioConfig A pointer to a sGpioConfig_t
-* @return GPIOResultOK on success, GPIOResultInvalidSelection on failure
+* @param[in]  port The index/identifier of the GPIO port the pin belongs to.
+* @param[in]  pin The index/identifier of the GPIO pin to configure
+* @param[in]  configPtr A pointer to a sGpioConfig_t
+* @return GPIO_RESULT_OK on success, GPIO_RESULT_INVALID_SELECTION on failure
 */
-eGPIOResult_t GPIOConfigPin(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_gpioPin, sGPIOConfig_t *sPtr_gpioConfig)
+GPIOResult_t GPIOConfigPin(GPIOPort_t port, GPIOPortSize_t pin, GPIOConfig_t *configPtr)
 {
-	eGPIOResult_t eResult = GPIOResultInvalidSelection;	// return value
+	GPIOResult_t result = GPIO_RESULT_INVALID_SELECTION;	// return value
 
 	// Check for valid pin.
-	if (gPS_gpioPin < MAX_GPIO_PIN)
+	if (pin < MAX_GPIO_PIN)
 	{
-		eResult = GPIOConfigPort(eGP_gpioPort, BV(gPS_gpioPin), sPtr_gpioConfig);
+		result = GPIOConfigPort(port, BV(pin), configPtr);
 	}
 
-	return eResult;
+	return result;
 }
 
 /*
  * @brief Read the state of the pins in the specified port with respect to the mask
  * that are configured as inputs.
- * @param[in]  ui32_GpioPort The index/identifier of the GPIO port to read
- * @param[in]  gPS_mask A bit mask of pins to read from the port
+ * @param[in]  port The index/identifier of the GPIO port to read
+ * @param[in]  mask A bit mask of pins to read from the port
  * @return The value of the pins of the port in the mask that are configured as inputs
  */
-GPIOPortSize_t GPIOReadPort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask)
+GPIOPortSize_t GPIOReadPort(GPIOPort_t port, GPIOPortSize_t mask)
 {
-	GPIOPortSize_t gPS_PortValue = 0;	// return value
+	GPIOPortSize_t portValue = 0;	// return value
 	uint16_t baseAddress;				// address of port's registers
 	uint16_t wordMask;					// mask converted to work with 16-bit registers
 
 	// Fetch the base address of the port's registers.
-	if (eGP_gpioPort < mathUtils_ArraySize(gpioPortToBaseAddress, uint16_t))
-		baseAddress = gpioPortToBaseAddress[eGP_gpioPort];
+	if (port < mathUtils_ArraySize(gpioPortToBaseAddress, uint16_t))
+		baseAddress = gpioPortToBaseAddress[port];
 	else
 		baseAddress = 0xFFFF;
 
@@ -435,42 +420,42 @@ GPIOPortSize_t GPIOReadPort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask)
 	if(baseAddress != 0xFFFF)
 	{
 		// Shift by 8 if port is odd (upper 8-bits).
-//		if((eGP_gpioPort & 1) ^ 1)
-		if (eGP_gpioPort & 1)
+//		if((port & 1) ^ 1)
+		if (port & 1)
 		{
-			wordMask = gPS_mask << 8;
+			wordMask = mask << 8;
 		}
 		// Don't alter the mask if the port is even.
 		else
 		{
-			wordMask = gPS_mask;
+			wordMask = mask;
 		}
 
 		// Fetch the value of the bits (and mask them according to user input).
-		gPS_PortValue = ISMASKSET(HWREG16(baseAddress + GPIO_REG_IN), wordMask);
+		portValue = ISMASKSET(HWREG16(baseAddress + GPIO_REG_IN), wordMask);
 	}
 	
-	return gPS_PortValue;
+	return portValue;
 }
 
 /*
  * @brief Read the state of the pin specified (if input)
- * @param[in]  eGP_gpioPort The index/identifier of the GPIO port to read
- * @param[in]  gPS_gpioPin The index/identifier of the GPIO pin to read
+ * @param[in]  port The index/identifier of the GPIO port to read
+ * @param[in]  pin The index/identifier of the GPIO pin to read
  * @return The value of the pin (if input)
  */
-uint8_t GPIOReadPin(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_gpioPin)
+uint8_t GPIOReadPin(GPIOPort_t port, GPIOPortSize_t pin)
 {
 	GPIOPortSize_t portValue = 0;	// value of port (masked)
 	uint8_t pinValue = 0;			// return value
 
 	// Check for valid pin.
-	if (gPS_gpioPin < MAX_GPIO_PIN)
+	if (pin < MAX_GPIO_PIN)
 	{
-		portValue = GPIOReadPort(eGP_gpioPort, BV(gPS_gpioPin));
+		portValue = GPIOReadPort(port, BV(pin));
 	}
 
-	pinValue = ISBITSET(portValue, gPS_gpioPin);
+	pinValue = ISBITSET(portValue, pin);
 
 	return pinValue;
 }
@@ -478,20 +463,20 @@ uint8_t GPIOReadPin(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_gpioPin)
 /*
  * @brief Write the value of the pins in the specified port with respect to the mask
  *  that are configured as outputs.
- * @param[in] eGP_gpioPort The index/identifier of the GPIO port to write
- * @param[in] gPS_mask A bit mask of pins to write in the port
+ * @param[in] port The index/identifier of the GPIO port to write
+ * @param[in] mask A bit mask of pins to write in the port
  * @param[in] ui8_portValue The value to write to the masked pins.
- * @return GPIOResultOK on success, GPIOResultInvalidSelection on failure
+ * @return GPIO_RESULT_OK on success, GPIO_RESULT_INVALID_SELECTION on failure
  */
-eGPIOResult_t GPIOWritePort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask, uint8_t ui8_portValue)
+GPIOResult_t GPIOWritePort(GPIOPort_t port, GPIOPortSize_t mask, uint8_t ui8_portValue)
 {
-	eGPIOResult_t eResult = GPIOResultInvalidSelection;
+	GPIOResult_t result = GPIO_RESULT_INVALID_SELECTION;
 	uint16_t baseAddress;				// address of port's registers
 	uint16_t wordMask;					// mask converted to work with 16-bit registers
 
 	// Fetch the base address of the port's registers.
-	if (eGP_gpioPort < mathUtils_ArraySize(gpioPortToBaseAddress, uint16_t))
-		baseAddress = gpioPortToBaseAddress[eGP_gpioPort];
+	if (port < mathUtils_ArraySize(gpioPortToBaseAddress, uint16_t))
+		baseAddress = gpioPortToBaseAddress[port];
 	else
 		baseAddress = 0xFFFF;
 
@@ -499,14 +484,14 @@ eGPIOResult_t GPIOWritePort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask, u
 	if(baseAddress != 0xFFFF)
 	{
 		// Shift by 8 if port is odd (upper 8-bits).
-		if (eGP_gpioPort & 1)
+		if (port & 1)
 		{
-			wordMask = gPS_mask << 8;
+			wordMask = mask << 8;
 		}
 		// Don't alter the mask if the port is even.
 		else
 		{
-			wordMask = gPS_mask;
+			wordMask = mask;
 		}
 
 		// Should we clear or set bits in the mask?
@@ -521,48 +506,48 @@ eGPIOResult_t GPIOWritePort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask, u
 			SETMASK(HWREG16(baseAddress + GPIO_REG_OUT), wordMask);
 		}
 
-		eResult = GPIOResultOK;
+		result = GPIO_RESULT_OK;
 	}
 		
-	return eResult;
+	return result;
 }
 
 /*
  * @brief Write the value of the pin specified (if an output)
- * @param[in] eGP_gpioPort The index/identifier of the GPIO port to write
- * @param[in] gPS_gpioPin The index/identifier of the GPIO pin to write
+ * @param[in] port The index/identifier of the GPIO port to write
+ * @param[in] pin The index/identifier of the GPIO pin to write
  * @param[in] ui8_pinValue The value to write to the pin.
- * @return GPIOResultOK on success, GPIOResultInvalidSelection on failure
+ * @return GPIO_RESULT_OK on success, GPIO_RESULT_INVALID_SELECTION on failure
  */
-eGPIOResult_t GPIOWritePin(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_gpioPin, uint8_t ui8_pinValue)
+GPIOResult_t GPIOWritePin(GPIOPort_t port, GPIOPortSize_t pin, uint8_t ui8_pinValue)
 {
-	eGPIOResult_t eResult = GPIOResultInvalidSelection;	// return value
+	GPIOResult_t result = GPIO_RESULT_INVALID_SELECTION;	// return value
 
 	// Check for valid pin.
-	if (gPS_gpioPin < MAX_GPIO_PIN)
+	if (pin < MAX_GPIO_PIN)
 	{
-		eResult = GPIOWritePort(eGP_gpioPort, BV(gPS_gpioPin), ui8_pinValue);
+		result = GPIOWritePort(port, BV(pin), ui8_pinValue);
 	}
 
-	return eResult;
+	return result;
 }
 
 /*
  * @brief Toggle the state of the pins in the specified port with respect to the mask
  * that are configured as outputs.
- * @param[in] eGP_gpioPort The index/identifier of the GPIO port to Toggle
- * @param[in] gPS_mask A bit mask of pins to toggle on the port
- * @return GPIOResultOK on success, GPIOResultInvalidSelection on failure
+ * @param[in] port The index/identifier of the GPIO port to Toggle
+ * @param[in] mask A bit mask of pins to toggle on the port
+ * @return GPIO_RESULT_OK on success, GPIO_RESULT_INVALID_SELECTION on failure
  */
-eGPIOResult_t GPIOTogglePort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask)
+GPIOResult_t GPIOTogglePort(GPIOPort_t port, GPIOPortSize_t mask)
 {
-	eGPIOResult_t eResult = GPIOResultInvalidSelection;
+	GPIOResult_t result = GPIO_RESULT_INVALID_SELECTION;
 	uint16_t baseAddress;				// address of port's registers
 	uint16_t wordMask;					// mask converted to work with 16-bit registers
 
 	// Fetch the base address of the port's registers.
-	if (eGP_gpioPort < mathUtils_ArraySize(gpioPortToBaseAddress, uint16_t))
-		baseAddress = gpioPortToBaseAddress[eGP_gpioPort];
+	if (port < mathUtils_ArraySize(gpioPortToBaseAddress, uint16_t))
+		baseAddress = gpioPortToBaseAddress[port];
 	else
 		baseAddress = 0xFFFF;
 
@@ -570,56 +555,56 @@ eGPIOResult_t GPIOTogglePort(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_mask)
 	if(baseAddress != 0xFFFF)
 	{
 		// Shift by 8 if port is odd (upper 8-bits).
-		if (eGP_gpioPort & 1)
+		if (port & 1)
 		{
-			wordMask = gPS_mask << 8;
+			wordMask = mask << 8;
 		}
 		// Don't alter the mask if the port is even.
 		else
 		{
-			wordMask = gPS_mask;
+			wordMask = mask;
 		}
 
 		// Toggle selected bits.
 		TOGGLEMASK(HWREG16(baseAddress + GPIO_REG_OUT), wordMask);
 
-		eResult = GPIOResultOK;
+		result = GPIO_RESULT_OK;
 	}
 
-	return eResult;
+	return result;
 }
 
 /*
  * @brief Toggle the state of the pin specified (if configured as output)
- * @param[in] eGP_gpioPort The index/identifier of the GPIO port to Toggle
- * @param[in] gPS_gpioPin The index/identifier of the GPIO pin to Toggle
- * @return GPIOResultOK on success, GPIOResultInvalidSelection on failure
+ * @param[in] port The index/identifier of the GPIO port to Toggle
+ * @param[in] pin The index/identifier of the GPIO pin to Toggle
+ * @return GPIO_RESULT_OK on success, GPIO_RESULT_INVALID_SELECTION on failure
  */
-eGPIOResult_t GPIOTogglePin(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_gpioPin)
+GPIOResult_t GPIOTogglePin(GPIOPort_t port, GPIOPortSize_t pin)
 {
-	eGPIOResult_t eResult = GPIOResultInvalidSelection;	// return value
+	GPIOResult_t result = GPIO_RESULT_INVALID_SELECTION;	// return value
 
 	// Check for valid pin.
-	if (gPS_gpioPin < MAX_GPIO_PIN)
+	if (pin < MAX_GPIO_PIN)
 	{
-		eResult = GPIOTogglePort(eGP_gpioPort, BV(gPS_gpioPin));
+		result = GPIOTogglePort(port, BV(pin));
 	}
 
-	return eResult;
+	return result;
 }
 
 /*
  * @brief Configure a GPIO pin as an external interrupt source and register a callback function or unregister
  *  a previously registered callback function.
- * @param[in] eGP_gpioPort The index/identifier of the GPIO port to configure.
+ * @param[in] port The index/identifier of the GPIO port to configure.
  * @param[in] eGP_gpioPin The index/identifier of the GPIO pin to configure.
  * @param[in] sPtr_gpioIntConfig A pointer to a sGPIOIntConfig_t structure with the desired pin/interrupt configuration
  * @param[in] funcPtr_GpioCallback A pointer to a function that will receive the interrupt, or NULL to unregister the callback function
- * @return GPIOResultOK on success, GPIOResultFail on failure
+ * @return GPIO_RESULT_OK on success, GPIO_RESULT_FAIL on failure
  */
-eGPIOResult_t GPIOConfigInterrupt(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t eGP_gpioPin, sGPIOIntConfig_t *sPtr_gpioIntConfig, GPIOIntCallback_t funcPtr_GpioCallback)
+GPIOResult_t GPIOConfigInterrupt(GPIOPort_t port, GPIOPortSize_t eGP_gpioPin, sGPIOIntConfig_t *sPtr_gpioIntConfig, GPIOIntCallback_t funcPtr_GpioCallback)
 {
-	eGPIOResult_t eResult = GPIOResultOK;	// return value from function
+	GPIOResult_t result = GPIO_RESULT_OK;	// return value from function
 	uint16_t baseAddress;					// address of port's registers
 	uint16_t wordMask;						// mask of port's pins, converted to work with 16-bit registers
 
@@ -630,26 +615,26 @@ eGPIOResult_t GPIOConfigInterrupt(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t eGP_g
 	}
 	else
 	{
-		eResult = GPIOResultInvalidSelection;
+		result = GPIO_RESULT_INVALID_SELECTION;
 	}
 	
 	// Fetch the base address of the port's registers.
-	if (eGP_gpioPort < MAX_GPIO_INT_PORT)
-		baseAddress = gpioPortToBaseAddress[eGP_gpioPort];
+	if (port < MAX_GPIO_INT_PORT)
+		baseAddress = gpioPortToBaseAddress[port];
 	else
 		baseAddress = 0xFFFF;
 
 	// Check for invalid ports.
-	if ((baseAddress != 0xFFFF) && (eResult == GPIOResultOK))
+	if ((baseAddress != 0xFFFF) && (result == GPIO_RESULT_OK))
 	{
 		// Shift by 8 if port is odd (upper 8-bits).
-		if (eGP_gpioPort & 1)
+		if (port & 1)
 		{
 			wordMask <<= 8;
 		}
 
 		// Store the new callback.
-		GPIOCallbackFuncs[eGP_gpioPort][eGP_gpioPin] = funcPtr_GpioCallback;
+		GPIOCallbackFuncs[port][eGP_gpioPin] = funcPtr_GpioCallback;
 
 		// Set the pin's function.
 		if (sPtr_gpioIntConfig->ui32_MuxPosition == 0)
@@ -665,12 +650,12 @@ eGPIOResult_t GPIOConfigInterrupt(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t eGP_g
 		CLEARMASK(HWREG16(baseAddress + GPIO_REG_DIR), wordMask);
 
 		// Enable pull-up/down resistors if requested.
-		if (sPtr_gpioIntConfig->ui32_InputPull == GPIOPinPullNone)
+		if (sPtr_gpioIntConfig->ui32_InputPull == GPIO_PULL_NONE)
 		{
 			// Disable resistors.
 			CLEARMASK(HWREG16(baseAddress + GPIO_REG_REN), wordMask);
 		}
-		else if (sPtr_gpioIntConfig->ui32_InputPull == GPIOPinPullUp)
+		else if (sPtr_gpioIntConfig->ui32_InputPull == GPIO_PULL_UP)
 		{
 			// Enable resistors.
 			SETMASK(HWREG16(baseAddress + GPIO_REG_REN), wordMask);
@@ -678,7 +663,7 @@ eGPIOResult_t GPIOConfigInterrupt(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t eGP_g
 			// Select pull-up direction.
 			SETMASK(HWREG16(baseAddress + GPIO_REG_OUT), wordMask);
 		}
-		else if (sPtr_gpioIntConfig->ui32_InputPull == GPIOPinPullDown)
+		else if (sPtr_gpioIntConfig->ui32_InputPull == GPIO_PULL_DOWN)
 		{
 			// Enable resistors.
 			SETMASK(HWREG16(baseAddress + GPIO_REG_REN), wordMask);
@@ -688,70 +673,70 @@ eGPIOResult_t GPIOConfigInterrupt(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t eGP_g
 		}
 		else
 		{
-			eResult = GPIOResultInvalidSelection;
+			result = GPIO_RESULT_INVALID_SELECTION;
 		}
 
 		// Select the interrupt edge transition.
 		// Rising and falling edge are supported directly.
 		// Both edges (at the same time) are supported via software emulation.
 		// Level interrupts are not supported.
-		if (sPtr_gpioIntConfig->ui32_DetectionCriteria == GPIOIntDetectEdgeRising)
+		if (sPtr_gpioIntConfig->ui32_DetectionCriteria == GPIO_INT_EDGE_RISING)
 		{
 			// Set rising edge for interrupt.
 			CLEARMASK(HWREG16(baseAddress + GPIO_REG_IES), wordMask);
 
 			// Clear the "detect both edges" flag for the pin.
-			CLEARMASK(GPIOIntDetectEdgeBothFlags[eGP_gpioPort], BV(eGP_gpioPin));
+			CLEARMASK(GPIOIntDetectEdgeBothFlags[port], BV(eGP_gpioPin));
 		}
-		else if (sPtr_gpioIntConfig->ui32_DetectionCriteria == GPIOIntDetectEdgeFalling)
+		else if (sPtr_gpioIntConfig->ui32_DetectionCriteria == GPIO_INT_EDGE_FALLING)
 		{
 			// Set falling edge for interrupt.
 			SETMASK(HWREG16(baseAddress + GPIO_REG_IES), wordMask);
 
 			// Clear the "detect both edges" flag for the pin.
-			CLEARMASK(GPIOIntDetectEdgeBothFlags[eGP_gpioPort], BV(eGP_gpioPin));
+			CLEARMASK(GPIOIntDetectEdgeBothFlags[port], BV(eGP_gpioPin));
 		}
-		else if (sPtr_gpioIntConfig->ui32_DetectionCriteria == GPIOIntDetectEdgeBoth)
+		else if (sPtr_gpioIntConfig->ui32_DetectionCriteria == GPIO_INT_EDGE_BOTH)
 		{
 			// Set the "detect both edges" flag for the pin.
-			SETMASK(GPIOIntDetectEdgeBothFlags[eGP_gpioPort], BV(eGP_gpioPin));
+			SETMASK(GPIOIntDetectEdgeBothFlags[port], BV(eGP_gpioPin));
 		}
 		else
 		{
-			eResult = GPIOResultInvalidSelection;
+			result = GPIO_RESULT_INVALID_SELECTION;
 		}
 	}
 	else
 	{
-		eResult = GPIOResultInvalidSelection;
+		result = GPIO_RESULT_INVALID_SELECTION;
 	}
 		
-	return eResult;
+	return result;
 }
 
 // TODO:  Add register and unregister functions for interrupts.
 
 /*
  * @brief Enable the interrupt for the specified pin. (Must be configured first!)
- * @param[in] eGP_gpioPort The index/identifier of the GPIO port to enable the interrupt for.
- * @param[in] gPS_gpioPin The index/identifier of the GPIO pin to enable the interrupt for.
- * @return GPIOResultOK on success, GPIOResultInvalidSelection on failure.
+ * @param[in] port The index/identifier of the GPIO port to enable the interrupt for.
+ * @param[in] pin The index/identifier of the GPIO pin to enable the interrupt for.
+ * @return GPIO_RESULT_OK on success, GPIO_RESULT_INVALID_SELECTION on failure.
  */
-eGPIOResult_t GPIOEnableInterrupt(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_gpioPin)
+GPIOResult_t GPIOEnableInterrupt(GPIOPort_t port, GPIOPortSize_t pin)
 {
-	eGPIOResult_t eResult = GPIOResultInvalidSelection;	// return value from function
+	GPIOResult_t result = GPIO_RESULT_INVALID_SELECTION;	// return value from function
 	uint16_t baseAddress;								// address of port's registers
 	uint16_t wordMask;									// mask of port's pins, converted to work with 16-bit registers
 
 	// Check for valid pin.
-	if (gPS_gpioPin < MAX_GPIO_PIN)
+	if (pin < MAX_GPIO_PIN)
 	{
 		// Convert the pin to its bitmask.
-		wordMask = BV(gPS_gpioPin);
+		wordMask = BV(pin);
 
 		// Fetch the base address of the port's registers.
-		if (eGP_gpioPort < mathUtils_ArraySize(gpioPortToBaseAddress, uint16_t))
-			baseAddress = gpioPortToBaseAddress[eGP_gpioPort];
+		if (port < mathUtils_ArraySize(gpioPortToBaseAddress, uint16_t))
+			baseAddress = gpioPortToBaseAddress[port];
 		else
 			baseAddress = 0xFFFF;
 
@@ -759,7 +744,7 @@ eGPIOResult_t GPIOEnableInterrupt(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_g
 		if(baseAddress != 0xFFFF)
 		{
 			// Shift by 8 if port is odd (upper 8-bits).
-			if (eGP_gpioPort & 1)
+			if (port & 1)
 			{
 				wordMask <<= 8;
 			}
@@ -768,10 +753,10 @@ eGPIOResult_t GPIOEnableInterrupt(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_g
 			// of rising and falling edges at the same time (which is supported
 			// on some other architectures, but not on the MSP430).
 			// If we're trying to catch rising and falling edges...
-			if (ISBITSET(GPIOIntDetectEdgeBothFlags[eGP_gpioPort], gPS_gpioPin))
+			if (ISBITSET(GPIOIntDetectEdgeBothFlags[port], pin))
 			{
 				// If the pin is high...
-				if (GPIOReadPin(eGP_gpioPort, gPS_gpioPin) != 0)
+				if (GPIOReadPin(port, pin) != 0)
 				{
 					// ...set falling edge for interrupt.
 					SETMASK(HWREG16(baseAddress + GPIO_REG_IES), wordMask);
@@ -788,33 +773,33 @@ eGPIOResult_t GPIOEnableInterrupt(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_g
 			// Enable the interrupt.
 			SETMASK(HWREG16(baseAddress + GPIO_REG_IE), wordMask);
 
-			eResult = GPIOResultOK;
+			result = GPIO_RESULT_OK;
 		}
 	}
 	
-	return eResult;
+	return result;
 }
 
 /*
  * @brief Disable the interrupt for the specified pin. 
- * @param[in] eGP_gpioPort The index/identifier of the GPIO port to enable the interrupt for.
- * @param[in] gPS_gpioPin The index/identifier of the GPIO pin to disable the interrupt for.
- * @return GPIOResultOK on success, GPIOResultInvalidSelection on failure.
+ * @param[in] port The index/identifier of the GPIO port to enable the interrupt for.
+ * @param[in] pin The index/identifier of the GPIO pin to disable the interrupt for.
+ * @return GPIO_RESULT_OK on success, GPIO_RESULT_INVALID_SELECTION on failure.
  */
-eGPIOResult_t GPIODisableInterrupt(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_gpioPin)
+GPIOResult_t GPIODisableInterrupt(GPIOPort_t port, GPIOPortSize_t pin)
 {
-	eGPIOResult_t eResult = GPIOResultInvalidSelection;	// return value from function
+	GPIOResult_t result = GPIO_RESULT_INVALID_SELECTION;	// return value from function
 	uint16_t baseAddress;								// address of port's registers
 	uint16_t wordMask;									// mask of port's pins, converted to work with 16-bit registers
 
 	// Check for valid pin.
-	if (gPS_gpioPin < MAX_GPIO_PIN)
+	if (pin < MAX_GPIO_PIN)
 	{
-		wordMask = BV(gPS_gpioPin);
+		wordMask = BV(pin);
 
 		// Fetch the base address of the port's registers.
-		if (eGP_gpioPort < mathUtils_ArraySize(gpioPortToBaseAddress, uint16_t))
-			baseAddress = gpioPortToBaseAddress[eGP_gpioPort];
+		if (port < mathUtils_ArraySize(gpioPortToBaseAddress, uint16_t))
+			baseAddress = gpioPortToBaseAddress[port];
 		else
 			baseAddress = 0xFFFF;
 
@@ -822,7 +807,7 @@ eGPIOResult_t GPIODisableInterrupt(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_
 		if(baseAddress != 0xFFFF)
 		{
 			// Shift by 8 if port is  (upper 8-bits).
-			if((eGP_gpioPort & 1) ^ 1)
+			if((port & 1) ^ 1)
 			{
 				wordMask <<= 8;
 			}
@@ -830,11 +815,11 @@ eGPIOResult_t GPIODisableInterrupt(eGPIOPort_t eGP_gpioPort, GPIOPortSize_t gPS_
 			// Disable the interrupt.
 			CLEARMASK(HWREG16(baseAddress + GPIO_REG_IE), wordMask);
 
-			eResult = GPIOResultOK;
+			result = GPIO_RESULT_OK;
 		}
 	}
 
-	return eResult;
+	return result;
 }
 
 /******************************************************************************
@@ -1194,14 +1179,14 @@ void __attribute__ ((interrupt(PORT4_VECTOR))) Port_4 (void)
 #define TEST_LED_ON			TRUE
 
 #define TEST_BTN_PIN		1
-#define TEST_BTN_PULL		GPIOPinPullUp
+#define TEST_BTN_PULL		GPIO_PULL_UP
 #define TEST_BTN_MUX		0
-#define TEST_BTN_TRIGGER	GPIOIntDetectEdgeBoth
+#define TEST_BTN_TRIGGER	GPIO_INT_EDGE_BOTH
 
-eGPIOResult_t GPIOTest(void)
+GPIOResult_t GPIOTest(void)
 {
-	eGPIOResult_t eResult = GPIOResultInvalidSelection;
-	sGPIOConfig_t	 ledConfig;
+	GPIOResult_t result = GPIO_RESULT_INVALID_SELECTION;
+	GPIOConfig_t	 ledConfig;
 	sGPIOIntConfig_t btnConfig;
 	
 	do
@@ -1211,8 +1196,8 @@ eGPIOResult_t GPIOTest(void)
 			break;
 			
 		// Setup Configuration structure for LED
-		ledConfig.ui32_Direction = GPIODirectionOutput;
-		ledConfig.ui32_InputPull = GPIOPinPullNone;
+		ledConfig.ui32_Direction = GPIO_DIR_OUT;
+		ledConfig.ui32_InputPull = GPIO_PULL_NONE;
 		ledConfig.ui32_MuxPosition = FALSE;
 		ledConfig.ui32_Powersave = FALSE;
 		
@@ -1228,8 +1213,8 @@ eGPIOResult_t GPIOTest(void)
 		btnConfig.ui32_InputPull = TEST_BTN_PULL;
 		btnConfig.ui32_MuxPosition = TEST_BTN_MUX;
 		btnConfig.ui32_DetectionCriteria = TEST_BTN_TRIGGER;
-		btnConfig.ui32_FilterInputSignal = GPIOResultInvalidSelection;
-		btnConfig.ui32_WakeIfSleeping = GPIOResultInvalidSelection;
+		btnConfig.ui32_FilterInputSignal = GPIO_RESULT_INVALID_SELECTION;
+		btnConfig.ui32_WakeIfSleeping = GPIO_RESULT_INVALID_SELECTION;
 		
 		// Configure the Button Pin and Interrupt
 		if (GPIOConfigInterrupt(TEST_PORT, TEST_BTN_PIN, &btnConfig, GPIOTestCallback))
@@ -1239,10 +1224,10 @@ eGPIOResult_t GPIOTest(void)
 		if (GPIOEnableInterrupt(TEST_PORT, TEST_BTN_PIN))
 			break;
 		
-		eResult = GPIOResultOK;
+		result = GPIO_RESULT_OK;
 	} while (FALSE);
 	
-	return eResult;
+	return result;
 }
 #endif // INCLUDE_TEST
 

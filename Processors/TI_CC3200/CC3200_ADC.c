@@ -239,6 +239,9 @@ adcResult_t AdcReadSamples(adcChannel_t channel, adcSample_t *sampleArray, uint3
 		break;
 	}
 
+	//*************************************************************************
+	// Don't do anything else if the result is not "OK".
+	//*************************************************************************
 	if (result == ADC_RESULT_OK)
 	{
 			// Set up global variables.
@@ -288,9 +291,9 @@ adcResult_t AdcReadSample(adcChannel_t channel, adcSample_t *sample)
 	return AdcReadSamples(channel, sample, 1);
 }
 
-/************************************************************************/
-/* ADC Test Functions                                                   */
-/************************************************************************/
+/******************************************************************************
+ *	ADC Test Functions
+ *****************************************************************************/
 #ifdef INCLUDE_TEST
 
 #define TEST_ADC_NUM_SAMPLES		16
