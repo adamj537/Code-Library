@@ -15,7 +15,7 @@ typedef void (*i2cCallback_t)(uint8_t *dataPtr);	// Prototype for callback funct
 
 typedef enum							// Enumeration for the I2C peripherals
 {
-	I2C0,								// this is the only channel on CC3200
+	I2C_CH_0,							// this is the only channel on CC3200
 	I2C_NUM_CHANNELS
 } i2cChannel_t;
 

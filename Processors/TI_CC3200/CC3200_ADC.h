@@ -15,10 +15,10 @@ typedef uint16_t adcSample_t;			// ADC result type
 
 typedef enum							// enumeration for the ADC channels
 {
-	ADC0,
-	ADC1,
-	ADC2,
-	ADC3,
+	ADC_CH_0,
+	ADC_CH_1,
+	ADC_CH_2,
+	ADC_CH_3,
 	ADC_NUM_CHANNELS
 } adcChannel_t;
 
