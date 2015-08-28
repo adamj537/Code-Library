@@ -17,7 +17,7 @@
 #include <stdint.h>						// defines standard data types
 #include <stddef.h>						// defines "NULL"
 #include "i2c.h"						// DriverLib - I2C
-#include "CC3200_I2C.h"					// header for this module
+#include "I2C.h"						// header for this module
 
 #define I2C_CLOCK_FREQ_HZ 	80000000	// master clock frequency
 
@@ -26,7 +26,9 @@
 
 #define I2C_TIMEOUT_VAL		0x7D		// I2C transaction time-out value
 										// Set to value 0x7D
-										// (20 ms @100KHzs, 5 ms @400Khz)
+										// (20 ms @100KHzs, 5 ms @400Khz
+										
+#define I2C_NUM_CHANNELS	1			// how many I2C channels we have
 
 /******************************************************************************
  * GLOBAL VARIABLES
@@ -609,7 +611,7 @@ bool I2CIsBusy(i2cChannel_t channel)
  *
  *****************************************************************************/
 
-i2cResult_t I2CWrite(i2cChannel_t channel, uint8_t *dataPtr, uint32_t count)
+i2cResult_t I2CWrite(i2cChannel_t channel, uint8_t *dataPtr, uint8_t count)
 {
 	i2cResult_t result;				// return value
 	uint32_t base;						// I2C registers' base address
@@ -669,7 +671,7 @@ i2cResult_t I2CWrite(i2cChannel_t channel, uint8_t *dataPtr, uint32_t count)
  *
  *****************************************************************************/
 
-i2cResult_t I2CRead(i2cChannel_t channel, uint8_t *dataPtr, uint32_t count)
+i2cResult_t I2CRead(i2cChannel_t channel, uint8_t *dataPtr, uint8_t count)
 {
 	i2cResult_t result;					// return value
 	uint32_t base;						// I2C registers' base address
@@ -728,7 +730,7 @@ i2cResult_t I2CRead(i2cChannel_t channel, uint8_t *dataPtr, uint32_t count)
  *****************************************************************************/
 
 i2cResult_t I2CWriteThenRead(i2cChannel_t channel, uint8_t *writeDataPtr,
-	uint32_t writeCount, uint8_t *readDataPtr, uint32_t readCount)
+	uint8_t writeCount, uint8_t *readDataPtr, uint8_t readCount)
 {
 	i2cResult_t result;					// return value
 	uint32_t base;						// I2C registers' base address
@@ -793,7 +795,7 @@ i2cResult_t I2CWriteThenRead(i2cChannel_t channel, uint8_t *writeDataPtr,
  *****************************************************************************/
 
 i2cResult_t I2CReadThenWrite(i2cChannel_t channel, uint8_t *readDataPtr,
-	uint32_t readCount, uint8_t *writeDataPtr, uint32_t writeCount)
+	uint8_t readCount, uint8_t *writeDataPtr, uint8_t writeCount)
 {
 	i2cResult_t result;					// return value
 	uint32_t base;						// I2C registers' base address

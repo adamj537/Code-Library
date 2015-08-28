@@ -4,18 +4,16 @@
  *
  *	Author:			Adam Johnson
  *
- *	Description:	This is a template for an I2C driver.  All new drivers
- *					should have functions and variable types that match these.
+ *	Description:	This is an I2C driver.
  *
  *****************************************************************************/
 
 #ifndef I2C__H
 #define I2C__H
 
-typedef enum							// available I2C peripherals
+typedef enum							// enumeration for I2C peripherals
 {
-	I2C_CH_0,
-	I2C_NUM_CHANNELS					// This is how many channels we have.
+	I2C_CH_0
 } i2cChannel_t;
 
 typedef enum							// result of a requested I2C action
@@ -34,13 +32,27 @@ typedef enum							// enumeration for operation mode
 	I2C_MODE_SLAVE_AND_GEN_CALL,		// You're an eavesdropping slave.
 } i2cMode_t;
 
+typedef enum							// Types of callback functions
+{
+	I2C_CB_TX,							// A transaction is complete (master modes)
+	I2C_CB_RX,							// A transaction was received (slave modes)
+	I2C_CB_ARB_LOST,					// Arbitration lost (multi-master mode)
+	I2C_CB_NO_ACK,						// Ack was expected but not received
+	I2C_CB_START,						// START + myAddress received/sent
+	I2C_CB_STOP,						// STOP received/sent
+	I2C_NUM_CALLBACKS
+} i2cCbType_t;
+
 typedef struct							// settings for an I2C channel
 {
 	i2cMode_t mode;						// operation mode
 	uint32_t speed;						// bus speed
 } i2cConfig_t;
 
+typedef void (*i2cCallback_t)(uint8_t *dataPtr);	// Prototype for callback functions
+
 i2cResult_t I2CInit(i2cChannel_t channel, i2cConfig_t *configPtr);
+i2cResult_t I2CRegisterCallback(i2cChannel_t channel, i2cCbType_t type, i2cCallback_t callbackPtr);
 i2cResult_t I2CWrite(i2cChannel_t channel, uint8_t address, uint8_t *dataPtr,
 				uint8_t count);
 i2cResult_t I2CRead(i2cChannel_t channel, uint8_t address, uint8_t *dataPtr,
@@ -53,4 +65,4 @@ i2cResult_t I2CReadThenWrite(i2cChannel_t channel, uint8_t address,
 				uint8_t *writeDataPtr, uint8_t writeCount);
 uint8_t     I2CIsBusy(i2cChannel_t channel);
 
-#endif
+#endif /* I2C__H */

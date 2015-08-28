@@ -18,9 +18,9 @@
 #include "prcm.h"						// DriverLib - power reset clock manager
 #include "adc.h"						// DriverLib - ADC
 #include "project.h"					// global project settings
-#include "CC3200_ADC.h"					// header for this module
+#include "ADC.h"						// header for this module
 
-#define MAX_ADC_CHANNELS	4			// number of channels in the ADC block
+#define ADC_NUM_CHANNELS	4			// number of channels in the processor
 #define MAX_ADC_INTERRUPTS	2			// number of items in adcCbType_t
 
 // The callback function pointer table for callback access

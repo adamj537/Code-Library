@@ -1,15 +1,15 @@
 /******************************************************************************
  *
- *	Filename:		CC3200_ADC.h
+ *	Filename:		ADC.h
  *
  *	Author:			Adam Johnson
  *
- *	Description:	ADC library for CC3200.  Tested on CC3200 LaunchXL board.
+ *	Description:	Driver for a processor's internal ADC.
  *
  *****************************************************************************/
 
-#ifndef CC3200_ADC_H
-#define CC3200_ADC_H
+#ifndef ADC_H
+#define ADC_H
 
 typedef uint16_t adcSample_t;			// ADC result type
 
@@ -19,7 +19,6 @@ typedef enum							// enumeration for the ADC channels
 	ADC_CH_1,
 	ADC_CH_2,
 	ADC_CH_3,
-	ADC_NUM_CHANNELS
 } adcChannel_t;
 
 typedef enum							// ADC gain settings
@@ -74,8 +73,4 @@ adcResult_t AdcSetCallback(adcChannel_t channel, adcCbType_t type, adcCallback_t
 adcResult_t AdcReadSamples(adcChannel_t channel, adcSample_t *sampleArray, uint32_t numSamples);
 adcResult_t AdcReadSample(adcChannel_t channel, adcSample_t *sample);
 
-#ifdef INCLUDE_TEST
-adcResult_t AdcTest(adcChannel_t channel);
-#endif
-
-#endif /* CC3200_ADC_H */
+#endif /* ADC_H */
