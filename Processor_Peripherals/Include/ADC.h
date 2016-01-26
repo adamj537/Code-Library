@@ -13,14 +13,6 @@
 
 typedef uint16_t adcSample_t;			// ADC result type
 
-typedef enum							// enumeration for the ADC channels
-{
-	ADC_CH_0,
-	ADC_CH_1,
-	ADC_CH_2,
-	ADC_CH_3,
-} adcChannel_t;
-
 typedef enum							// ADC gain settings
 {
 	ADC_GAIN_1
@@ -28,7 +20,10 @@ typedef enum							// ADC gain settings
 
 typedef enum							// ADC resolution settings
 {
-	ADC_RES_12							// 12-bit
+	ADC_RES_8,							// 8-bit
+	ADC_RES_12,							// 12-bit
+	ADC_RES_16,							// 16-bit
+	ADC_RES_24							// 24-bit
 } adcRes_t;
 
 typedef enum							// ADC mode settings
@@ -57,7 +52,6 @@ typedef enum							// Callback assignments
 
 typedef struct							// configuration structure
 {
-	adcChannel_t channel;				// The index of the peripheral to access
 	adcGain_t gain;						// The amount of gain to apply
 	adcRef_t reference;					// The analog reference source
 	adcRes_t resolution;				// The resolution of the returned samples
@@ -68,9 +62,9 @@ typedef struct							// configuration structure
 
 typedef void (*adcCallback_t)(adcChannel_t channel);	// prototype for callback functions
 
-adcResult_t AdcInit(adcConfig_t *configPtr);
-adcResult_t AdcSetCallback(adcChannel_t channel, adcCbType_t type, adcCallback_t Callback);
-adcResult_t AdcReadSamples(adcChannel_t channel, adcSample_t *sampleArray, uint32_t numSamples);
-adcResult_t AdcReadSample(adcChannel_t channel, adcSample_t *sample);
+adcResult_t AdcInit(uint8_t channel, adcConfig_t *configPtr);
+adcResult_t AdcSetCallback(uint8_t channel, adcCbType_t type, adcCallback_t Callback);
+adcResult_t AdcReadSamples(uint8_t channel, adcSample_t *sampleArray, uint32_t numSamples);
+adcResult_t AdcReadSample(uint8_t channel, adcSample_t *sample);
 
 #endif /* ADC_H */
