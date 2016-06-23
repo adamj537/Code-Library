@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *	Filename:		Project.h
+ *	Filename:		project.h
  *
  *	Author:			Adam Johnson
  *
@@ -10,13 +10,13 @@
  *					global.
  *
  *****************************************************************************/
- 
-#ifndef MAIN__H
-#define MAIN__H
+
+#ifndef PROJECT__H
+#define PROJECT__H
 
 #define INCLUDE_TEST			// Include test code.
 #define ID			"TEST"		// firmware ID - a 4 character string
 #define FVN			"  V1"		// firmware version - a 4 character string
-#define XTAL_FREQ	80000000	// oscillator frequency [Hz]
+#define XTAL_FREQ	16000000	// oscillator frequency [Hz]
 
 #endif

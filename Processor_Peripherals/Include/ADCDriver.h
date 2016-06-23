@@ -1,30 +1,23 @@
 /******************************************************************************
  *
- *	Filename:		ADC.h
- *
- *	Author:			Adam Johnson
+ *	Filename:		ADCDriver.h
  *
  *	Description:	Driver for a processor's internal ADC.
  *
+ *	Terms of Use:	MIT License
+ *
  *****************************************************************************/
 
-#ifndef ADC_H
-#define ADC_H
+#ifndef ADCDRIVER_H
+#define ADCDRIVER_H
 
-typedef uint16_t adcSample_t;			// ADC result type
+#include <stdint.h>						// universal data types
 
-typedef enum							// ADC gain settings
-{
-	ADC_GAIN_1
-} adcGain_t;
-
-typedef enum							// ADC resolution settings
-{
-	ADC_RES_8,							// 8-bit
-	ADC_RES_12,							// 12-bit
-	ADC_RES_16,							// 16-bit
-	ADC_RES_24							// 24-bit
-} adcRes_t;
+#ifndef ADC_COUNT_IS_DEFINED			// ensure ADC's sample size is defined
+#error "adcCount_t should be typedefed in your project."
+#warning "like this:  typedef uint16_t adcCount_t"
+#warning "Define ADC_COUNT_IS_DEFINED too."
+#endif
 
 typedef enum							// ADC mode settings
 {
@@ -44,7 +37,7 @@ typedef enum							// error codes
 	ADC_RESULT_INVALID_SELECTION		// It's your fault.
 } adcResult_t;
 
-typedef enum							// Callback assignments
+typedef enum							// types of callback functions
 {
 	ADC_CB_DONE,						// conversion complete
 	ADC_CB_ERROR						// error
@@ -52,10 +45,10 @@ typedef enum							// Callback assignments
 
 typedef struct							// configuration structure
 {
-	adcGain_t gain;						// The amount of gain to apply
-	adcRef_t reference;					// The analog reference source
-	adcRes_t resolution;				// The resolution of the returned samples
+	uint8_t gain;						// The amount of gain to apply
+	uint8_t resolution;					// The resolution of the returned samples
 	adcMode_t mode;						// The operation mode of ADC conversions
+	adcRef_t reference;					// The analog reference source
 	bool differential;					// TRUE = differential input; FALSE = single ended input
 	bool leftAdjust;					// TRUE = left justified results
 } adcConfig_t;
@@ -64,7 +57,7 @@ typedef void (*adcCallback_t)(adcChannel_t channel);	// prototype for callback f
 
 adcResult_t AdcInit(uint8_t channel, adcConfig_t *configPtr);
 adcResult_t AdcSetCallback(uint8_t channel, adcCbType_t type, adcCallback_t Callback);
-adcResult_t AdcReadSamples(uint8_t channel, adcSample_t *sampleArray, uint32_t numSamples);
-adcResult_t AdcReadSample(uint8_t channel, adcSample_t *sample);
+adcResult_t AdcReadCounts(uint8_t channel, adcCount_t *sample);
+adcResult_t AdcReadVoltage(uint8_t channel, float *sample);
 
-#endif /* ADC_H */
+#endif /* ADCDRIVER_H */

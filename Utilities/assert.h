@@ -5,9 +5,9 @@
  *	Description:	If something fails to assert (which basically means it's
  *					equal to zero), we wait in an infinite loop.  If we're in a
  *					debugger, then we can break and see where the code failed.
- *					If we're not debugging, and are using a watchdog, then
+ *					If we're not debugging, and ARE using a watchdog, then
  *					eventually the watchdog will reset the processor.  If we're
- *					not debugging, and are not using a watchdog, we can compile
+ *					not debugging, and are NOT using a watchdog, we can compile
  *					the assert out.
  *
  *****************************************************************************/

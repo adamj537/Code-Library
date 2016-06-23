@@ -21,8 +21,8 @@
  *
  *****************************************************************************/
 
-#include "Project.h"					// global settings
-#include "Peripherals.h"				// processor-specific header.
+#include "project.h"					// global settings
+#include "peripherals.h"				// processor-specific header
 #include <stdint.h>						// universal data types
 										// TODO:  Include relevant driver(s).
 										// TODO:  Include relevant app(s).

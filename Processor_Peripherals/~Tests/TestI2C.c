@@ -18,7 +18,7 @@
 #define I2C_ADDR	0x50	// I2C address of EEPROM 24C02 (see datasheet)
 #define I2C_SPEED	100000	// 10 kHz
 
-i2cResult_t TestI2C(i2cChannel_t channel)
+i2cResult_t TestI2C(i2cChannel_t channel, uint8_t repeatFlag)
 {
 	i2cResult_t result = I2C_RESULT_OK;	// an optimistic return value :)
 	i2cConfig_t config;					// module configuration data
@@ -42,36 +42,40 @@ i2cResult_t TestI2C(i2cChannel_t channel)
 		if (result != I2C_RESULT_OK)
 			break;
 
-		// Try a read.
-		result = I2CRead(channel, (uint8_t *)response, sizeof(response));
-		if (result != I2C_RESULT_OK)
-			break;
+		do	// This part can (optionally) be repeated.
+		{
+			// Try a read.
+			result = I2CRead(channel, (uint8_t *)response, sizeof(response));
+			if (result != I2C_RESULT_OK)
+				break;
 
-		// Wait until the device is not busy from the previous operation.
-		while (I2CIsBusy(channel));
+			// Wait until the device is not busy from the previous operation.
+			while (I2CIsBusy(channel));
 
-		// Try a write.
-		result = I2CWrite(channel, (uint8_t *)writeMsg, sizeof(writeMsg));
-		if (result != I2C_RESULT_OK)
-			break;
+			// Try a write.
+			result = I2CWrite(channel, (uint8_t *)writeMsg, sizeof(writeMsg));
+			if (result != I2C_RESULT_OK)
+				break;
 
-		// Wait until the device is not busy from the previous operation.
-		while (I2CIsBusy(channel));
+			// Wait until the device is not busy from the previous operation.
+			while (I2CIsBusy(channel));
 
-		// Wait > 5 ms for the EEPROM to finish the write cycle (see
-		// datasheet).  MCLK = 1048576 Hz (by default), so:
-		// MCLK (1/s) * 0.005 s = 5242.88.  Round up to 5250, and wait that
-		// many cycles.
-//		__delay_cycles(5250);
+			// Wait > 5 ms for the EEPROM to finish the write cycle (see
+			// datasheet).  MCLK = 1048576 Hz (by default), so:
+			// MCLK (1/s) * 0.005 s = 5242.88.  Round up to 5250, and wait that
+			// many cycles.
+//			__delay_cycles(5250);
 
-		// Try a write-then-read.
-		result = I2CWriteThenRead(channel, (uint8_t *)readMsg,
-			sizeof(readMsg), (uint8_t *)response, sizeof(response));
-		if (result != I2C_RESULT_OK)
-			break;
+			// Try a write-then-read.
+			result = I2CWriteThenRead(channel, (uint8_t *)readMsg,
+				sizeof(readMsg), (uint8_t *)response, sizeof(response));
+			if (result != I2C_RESULT_OK)
+				break;
 
-		// Wait until the device is not busy from the previous operation.
-		while (I2CIsBusy(channel));
+			// Wait until the device is not busy from the previous operation.
+			while (I2CIsBusy(channel));
+
+		} while (repeatFlag);			// Repeat if requested.
 	} while (FALSE);					// Don't repeat the initialization.
 
 	return result;
