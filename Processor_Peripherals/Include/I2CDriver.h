@@ -54,7 +54,7 @@ typedef struct							// settings for an I2C channel
 	uint32_t speed;						// bus speed
 } i2cConfig_t;
 
-typedef void (*i2cCallback_t)(uint8_t *dataPtr);	// Prototype for callback functions
+typedef void (*i2cCallback_t)(uint8_t *dataPtr);	// prototype for callback functions
 
 // High-level functions:
 i2cResult_t I2CInit(uint8_t channel, i2cConfig_t *configPtr);
