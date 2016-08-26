@@ -5,7 +5,7 @@
  *	Description:	Driver for GPIO functions for the ATtiny.  GPIO on the
  *					Atmel is accessed via four registers:
  *					DDxn - sets the pin direction; 0 = input, 1 = output
- *					PORTxn - pin output; 0 = drive low, 1 = drive high
+ *					PORTxn - sets pin output; 0 = drive low, 1 = drive high
  *					PUExn - pullup enable; 0 = disabled, 1 = enabled
  *					PINxn - reads pin status; 0 = low, 1 = high
  *

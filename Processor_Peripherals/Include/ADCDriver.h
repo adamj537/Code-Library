@@ -19,16 +19,6 @@
 #warning "Define ADC_COUNT_IS_DEFINED too."
 #endif
 
-typedef enum							// ADC mode settings
-{
-	ADC_MODE_CONTINUOUS,				// Convert continuously.
-} adcMode_t;
-
-typedef enum							// ADC reference settings
-{
-	ADC_REF_1_5V
-} adcRef_t;
-
 typedef enum							// error codes
 {
 	ADC_RESULT_OK = 0,					// All is well!
@@ -36,6 +26,17 @@ typedef enum							// error codes
 	ADC_RESULT_NOT_IMPLEMENTED,			// It's my fault.
 	ADC_RESULT_INVALID_SELECTION		// It's your fault.
 } adcResult_t;
+
+typedef enum							// ADC mode settings
+{
+	ADC_MODE_SINGLE,					// Convert only once.
+	ADC_MODE_CONTINUOUS,				// Convert continuously.
+} adcMode_t;
+
+typedef enum							// ADC reference settings
+{
+	ADC_REF_1_5V
+} adcRef_t;
 
 typedef enum							// types of callback functions
 {
