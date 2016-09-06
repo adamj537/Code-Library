@@ -22,10 +22,10 @@
 
 typedef struct							// port settings structure
 {
-	GPIO_t functionRegister;			// port function register
-	GPIO_t directionRegister;			// port direction register; 0 = input
-	GPIO_t valueRegister;				// port value register
-	GPIO_t pullRegister;				// pin pullup/down register
+	GPIO_t function;					// port function register value
+	GPIO_t direction;					// port direction register; 0 = input
+	GPIO_t value;						// port value register
+	GPIO_t pull;						// pin pullup/down register
 	bool pullType;						// FALSE = down, TRUE = up
 } gpioConfig_t;
 

@@ -22,16 +22,16 @@
 void GPIOConfigPort(uint8_t port, gpioConfig_t *configPtr)
 {
 	// Set the desired pins for GPIO function.
-	GPIOSetPortFunction(port, configPtr->functionRegister);
+	GPIOSetPortFunction(port, configPtr->function);
 	
 	// Set the port's direction register.
-	GPIOSetPortDirection(port, configPtr->directionRegister);
+	GPIOSetPortDirection(port, configPtr->direction);
 	
 	// Enable or disable pull-up registers (TRUE for pull-UP).
-	GPIOSetPortPull(port, configPtr->pullRegister, TRUE);
+	GPIOSetPortPull(port, configPtr->pull, TRUE);
 	
 	// Set the port's initial value.
-	GPIOWritePort(port, configPtr->valueRegister);
+	GPIOWritePort(port, configPtr->value);
 }
 
 void GPIOSetPortFunction(uint8_t port, GPIO_t mask)

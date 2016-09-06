@@ -38,16 +38,16 @@
 void GPIOConfigurePort(uint8_t port, gpioConfig_t *configPtr)
 {
 	// Set the desired pins for GPIO function.
-	GPIOSetPortFunction(port, configPtr->functionRegister);
+	GPIOSetPortFunction(port, configPtr->function);
 	
 	// Set the port's direction register.
-	GPIOSetPortDirection(port, configPtr->directionRegister);
+	GPIOSetPortDirection(port, configPtr->direction);
 	
 	// Enable or disable pull-up registers (TRUE for pull-UP).
-	GPIOSetPortPull(port, configPtr->pullRegister, TRUE);
+	GPIOSetPortPull(port, configPtr->pull, TRUE);
 	
 	// Set the port's initial value.
-	GPIOWritePort(port, configPtr->valueRegister);
+	GPIOWritePort(port, configPtr->value);
 }
 
 void GPIOSetPortFunction(uint8_t port, GPIO_t mask)
@@ -79,22 +79,22 @@ void GPIOSetPortDirection(uint8_t port, GPIO_t direction)
 {
 #ifdef TRISA
 	if (port == 0)
-		TRISA = direction;
+		TRISA = ~direction;
 #endif
 
 #ifdef TRISB
 	else if (port == 1)
-		TRISB = direction;
+		TRISB = ~direction;
 #endif
 
 #ifdef TRISC
 	else if (port == 2)
-		TRISC = direction;
+		TRISC = ~direction;
 #endif
 
 #ifdef TRISD
 	else if (port == 3)
-		TRISD = direction;
+		TRISD = ~direction;
 #endif
 }
 
