@@ -13,7 +13,11 @@
 #include "SoftwareTimer.h"				// header for this module
 
 // Defined constants & macros
+#ifndef TICKS_PER_MS
+#warning "TICKS_PER_MS should be defined in project.h,"
+#warning "like this: #define TICKS_PER_MS PORTD"
 #define TICKS_PER_MS		1			// number of ISR calls per ms
+#endif
 
 // Global Variables
 static volatile uint32_t g_ticks;		// incremented once per call to ISR
@@ -64,15 +68,13 @@ uint32_t SoftTimerGetMS(void)
 
 uint8_t SoftTimerDings(uint32_t pastTime, uint32_t waitTime)
 {
-	uint8_t doneFlag;					// flag set when time is over
 	uint32_t nowTime;					// current timestamp
+	uint8_t doneFlag = false;			// flag set when time is over
 
-	doneFlag = 0;						// Assume we're not done.
-
-	nowTime = SoftTimerGetMS();		// Get the current time.
+	nowTime = SoftTimerGetMS();			// Get the current time.
 	if ((nowTime - pastTime) > waitTime)// Has the desired time elapsed?
 	{
-		doneFlag = 1;					// Yay!  We're done.
+		doneFlag = true;				// Yay!  We're done.
 	}
 
 	return doneFlag;					// Let the user know.
@@ -117,11 +119,15 @@ void SoftTimerDelay(uint16_t msec)
 void SoftTimerISR(void)
 {
 	g_ticks++;
+	
+#ifdef INCLUDE_TEST_FUNCTIONS
+	SoftTimerTestISR();
+#endif
 }
 
-/*****************************************************************************/
-/* Test Functions                                                            */
-/*****************************************************************************/
+/******************************************************************************/
+/* Test Functions                                                             */
+/******************************************************************************/
 
 #ifdef INCLUDE_TEST_FUNCTIONS
 
