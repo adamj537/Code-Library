@@ -4,6 +4,10 @@
  *
  *  Description:	Driver for GPIO functions
  *
+ *	Notes:			The direction register is opposite between PIC and AVR.
+ *					For AVR, 0 = input.  For PIC, 0 = output.
+ *					So the PIC version of this driver inverts this register.
+ *
  *	Terms of Use:	MIT License
  *
  *****************************************************************************/

@@ -35,7 +35,7 @@
 #include "BitLogic.h"					// useful macros for boolean logic
 #include "GPIODriver.h"					// header for this module
 
-void GPIOConfigurePort(uint8_t port, gpioConfig_t *configPtr)
+void GPIOConfigPort(uint8_t port, gpioConfig_t *configPtr)
 {
 	// Set the desired pins for GPIO function.
 	GPIOSetPortFunction(port, configPtr->function);
