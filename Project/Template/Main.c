@@ -2,14 +2,14 @@
  *
  *	Notes:	Project.h is included first because sometimes compiler include files
  *			can use special defined symbols (like _XTAL_FREQ for PIC), and it's
- *			nice to tuck them in the Project.h file.   Main.h also should contain
- *			any global defined symbols (like INCLUDE_TEST).  stdint.h allows
- *			us to use universal data types (like uint8_t) that are processor
- *			independent and make code look nicer and port easier.  If for some
- *			reason we can't (or don't want to) use stdint.h, we can make our
- *			own file (call it Datatypes.h) and include that instead. Other
- *			included files go after that so	they also get the benefit of the
- *			global symbols and nice data types.
+ *			nice to tuck them in the Project.h file.   project.h also should
+ *			contain any global defined symbols (like INCLUDE_TEST).  stdint.h
+ *			allows us to use universal data types (like uint8_t) that are
+ *			processor independent and make code look nicer and port easier.  If
+ *			for some reason we can't (or don't want to) use stdint.h, we can
+ *			make our own file (call it Datatypes.h) and include that instead.
+ *			Other included files go after that so they also get the benefit of
+ *			the global symbols and nice data types.
  *
  *			Tests, when included, are run before anything else.  All included
  *			modules should have a test.  This makes testing code easier, and
