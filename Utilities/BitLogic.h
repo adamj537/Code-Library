@@ -1,3 +1,15 @@
+/******************************************************************************
+ *
+ *	Filename:		BitLogic.h
+ *
+ *	Author:			Adam Johnson
+ *
+ *	Description:	Useful macros for doing basic boolean math.
+ *
+ *	License:		MIT License
+ *
+ *****************************************************************************/
+
 #ifndef BITLOGIC_H
 #define BITLOGIC_H
 
