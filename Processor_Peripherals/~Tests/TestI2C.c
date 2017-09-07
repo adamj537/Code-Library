@@ -8,6 +8,8 @@
  *					ensures that as the module is ported or upgraded, is still
  *					has the same usage and performs correctly.
  *
+ *	Terms of Use:	MIT License
+ *
  *****************************************************************************/
 
 #ifdef INCLUDE_TEST

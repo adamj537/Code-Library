@@ -6,6 +6,8 @@
  *	Description:	Master I2C library for CC3200.  Tested on CC3200 LaunchXL
  *					board.
  *
+ *	Terms of Use:	MIT License
+ *
  *****************************************************************************/
 
 #include "rom.h"						// macros to call ROM DriverLib

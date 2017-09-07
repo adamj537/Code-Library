@@ -42,6 +42,8 @@
  *					Unused pins should be configured as GPIO, output direction,
  *					and left unconnected on the PCB.  PxOUT is don't care.
  *
+ *	Terms of Use:	MIT License
+ *
  *****************************************************************************/
 
 #include <msp430.h>						// required by development platform

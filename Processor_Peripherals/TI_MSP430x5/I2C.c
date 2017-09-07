@@ -33,6 +33,8 @@
  *					the 2nd-to-last byte of data in the transaction.  We also
  *					need to do something similar when receiving only one byte.
  *
+ *	Terms of Use:	MIT License
+ *
  *****************************************************************************/
 
 #include <msp430.h>						// required by development platform

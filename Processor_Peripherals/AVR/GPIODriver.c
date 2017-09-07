@@ -9,6 +9,8 @@
  *					PUExn - pullup enable; 0 = disabled, 1 = enabled
  *					PINxn - reads pin status; 0 = low, 1 = high
  *
+ *	Terms of Use:	MIT License
+ *
  *	Notes:			On reset, pins are tri-stated (DDxn = 0, PUExn = 0)
  *
  *****************************************************************************/

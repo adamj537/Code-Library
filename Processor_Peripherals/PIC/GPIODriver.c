@@ -27,6 +27,8 @@
  *					outputs to LATx.  If you need to read what you set an output
  *					to, read LATx (source:  DarioG of microchip.com/forums).
  *
+ *	Terms of Use:	MIT License
+ *
  *****************************************************************************/
 
 #include <xc.h>							// pin register definitions

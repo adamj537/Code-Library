@@ -6,6 +6,8 @@
  *
  *	Source:			Peter Fleury <pfleury@gmx.ch>  http://jump.to/fleury
  *
+ *	Terms of Use:	MIT License
+ *
  *	Description:	I2C master library using hardware TWI interface; written
  *					for any AVR device with hardware TWI, and compilable with
  *					AVR-GCC and avr-libc.
