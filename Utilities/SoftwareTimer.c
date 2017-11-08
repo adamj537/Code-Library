@@ -15,7 +15,7 @@
 // Defined constants & macros
 #ifndef TICKS_PER_MS
 #warning "TICKS_PER_MS should be defined in project.h,"
-#warning "like this: #define TICKS_PER_MS PORTD"
+#warning "like this: #define TICKS_PER_MS 1"
 #define TICKS_PER_MS		1			// number of ISR calls per ms
 #endif
 
