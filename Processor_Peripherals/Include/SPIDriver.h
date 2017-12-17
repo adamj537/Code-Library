@@ -2,6 +2,8 @@
  *
  *	Filename:		SPIDriver.h
  *
+ *	Author:			Adam Johnson
+ *
  *	Description:	Driver for SPI functions.  Low- and high-level functions.
  *
  *	Terms of Use:	MIT License

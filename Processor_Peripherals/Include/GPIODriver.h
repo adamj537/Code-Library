@@ -2,6 +2,8 @@
  *
  *	Filename:		GPIODriver.h
  *
+ *	Author:			Adam Johnson
+ *
  *  Description:	Driver for GPIO functions
  *
  *	Notes:			The direction register is opposite between PIC and AVR.

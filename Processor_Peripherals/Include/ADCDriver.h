@@ -2,6 +2,8 @@
  *
  *	Filename:		ADCDriver.h
  *
+ *	Author:			Adam Johnson
+ *
  *	Description:	Driver for a processor's internal ADC.
  *
  *	Terms of Use:	MIT License
