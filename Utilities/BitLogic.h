@@ -6,6 +6,8 @@
  *
  *	Description:	Useful macros for doing basic boolean math.
  *
+ *	Origin:			github.com/adamj537/Code-Library
+ *
  *	License:		MIT License
  *
  *****************************************************************************/
