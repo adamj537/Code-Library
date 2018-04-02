@@ -48,7 +48,7 @@
 
 #include <msp430.h>						// required by development platform
 #include <stdint.h>						// compiler-specific data types
-#include "Main.h"						// global settings; driver configuration
+#include "project.h"					// global settings; driver configuration
 #include "Bitlogic.h"					// handy macros that make life easier
 #include "GPIO.h"						// header for this module
 
@@ -521,14 +521,14 @@ GPIOResult_t GPIOWritePort(GPIOPort_t port, GPIOPortSize_t mask, uint8_t ui8_por
  * @param[in] ui8_pinValue The value to write to the pin.
  * @return GPIO_RESULT_OK on success, GPIO_RESULT_INVALID_SELECTION on failure
  */
-GPIOResult_t GPIOWritePin(GPIOPort_t port, GPIOPortSize_t pin, uint8_t ui8_pinValue)
+GPIOResult_t GPIOWritePin(GPIOPort_t port, GPIOPortSize_t pin, uint8_t pinValue)
 {
 	GPIOResult_t result = GPIO_RESULT_INVALID_SELECTION;	// return value
 
 	// Check for valid pin.
 	if (pin < MAX_GPIO_PIN)
 	{
-		result = GPIOWritePort(port, BV(pin), ui8_pinValue);
+		result = GPIOWritePort(port, BV(pin), pinValue);
 	}
 
 	return result;
@@ -604,14 +604,14 @@ GPIOResult_t GPIOTogglePin(GPIOPort_t port, GPIOPortSize_t pin)
  * @param[in] funcPtr_GpioCallback A pointer to a function that will receive the interrupt, or NULL to unregister the callback function
  * @return GPIO_RESULT_OK on success, GPIO_RESULT_FAIL on failure
  */
-GPIOResult_t GPIOConfigInterrupt(GPIOPort_t port, GPIOPortSize_t eGP_gpioPin, sGPIOIntConfig_t *sPtr_gpioIntConfig, GPIOIntCallback_t funcPtr_GpioCallback)
+GPIOResult_t GPIOConfigInterrupt(GPIOPort_t port, GPIOPortSize_t gpioPin, sGPIOIntConfig_t *sPtr_gpioIntConfig, GPIOIntCallback_t funcPtr_GpioCallback)
 {
 	GPIOResult_t result = GPIO_RESULT_OK;	// return value from function
 	uint16_t baseAddress;					// address of port's registers
 	uint16_t wordMask;						// mask of port's pins, converted to work with 16-bit registers
 
 	// Check for valid pin.
-	if (eGP_gpioPin < MAX_GPIO_PIN)
+	if (gpioPin < MAX_GPIO_PIN)
 	{
 		wordMask = BV(eGP_gpioPin);
 	}
@@ -636,7 +636,7 @@ GPIOResult_t GPIOConfigInterrupt(GPIOPort_t port, GPIOPortSize_t eGP_gpioPin, sG
 		}
 
 		// Store the new callback.
-		GPIOCallbackFuncs[port][eGP_gpioPin] = funcPtr_GpioCallback;
+		GPIOCallbackFuncs[port][gpioPin] = gpioCallback;
 
 		// Set the pin's function.
 		if (sPtr_gpioIntConfig->ui32_MuxPosition == 0)
@@ -1180,9 +1180,9 @@ void __attribute__ ((interrupt(PORT4_VECTOR))) Port_4 (void)
 #define TEST_LED_OFF		FALSE
 #define TEST_LED_ON			TRUE
 
+#define TEST_BTN_FUNC		0
 #define TEST_BTN_PIN		1
 #define TEST_BTN_PULL		GPIO_PULL_UP
-#define TEST_BTN_MUX		0
 #define TEST_BTN_TRIGGER	GPIO_INT_EDGE_BOTH
 
 GPIOResult_t GPIOTest(void)
@@ -1231,21 +1231,6 @@ GPIOResult_t GPIOTest(void)
 	
 	return result;
 }
-#endif // INCLUDE_TEST
-
-
-/*! @} */ /* End of expfuncs group. */
-/*****************************************************************************
-**
-** LOCAL FUNCTIONS
-**
-*****************************************************************************/
-/*! @defgroup HAL_GPIO.c_SRC_locfuncs Local Functions
- *    @ingroup HAL_GPIO.c_SRC
- * @{
- */
-
-#ifdef INCLUDE_TEST
 
 void GPIOTestCallback(void)
 {

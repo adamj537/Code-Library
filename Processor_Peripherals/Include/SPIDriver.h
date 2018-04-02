@@ -23,10 +23,10 @@ typedef enum							// result of a requested SPI action
 
 typedef enum							// enumeration for operation mode
 {
-	SPI_MODE_0,							// CPOL = , CPHA = 
+	SPI_MODE_0,							// CPOL = 0, CPHA = 0
 	SPI_MODE_1,							// CPOL = 0, CPHA = 1
-	SPI_MODE_2,							// CPOL = , CPHA = 
-	SPI_MODE_3,							// CPOL = , CPHA = 
+	SPI_MODE_2,							// CPOL = 1, CPHA = 0
+	SPI_MODE_3,							// CPOL = 1, CPHA = 1
 } spiMode_t;
 
 typedef enum							// types of callback functions
@@ -36,8 +36,9 @@ typedef enum							// types of callback functions
 
 typedef struct							// settings for an SPI channel
 {
-	spiMode_t mode;						// operation mode
 	uint32_t speed;						// bus speed
+	spiMode_t mode;						// operation mode
+	bool master;						// true = master, false = slave
 } spiConfig_t;
 
 typedef void (*spiCallback_t)(uint8_t *dataPtr);	// prototype for callback functions
