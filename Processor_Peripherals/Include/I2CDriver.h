@@ -61,7 +61,7 @@ i2cResult_t I2CWriteThenRead(uint8_t channel, uint8_t address,
 i2cResult_t I2CReadThenWrite(uint8_t channel, uint8_t address,
 				uint8_t *readDataPtr, uint32_t readCount,
 				uint8_t *writeDataPtr, uint32_t writeCount);
-uint8_t     I2CIsBusy(uint8_t channel);
+bool        I2CIsBusy(uint8_t channel);
 
 #ifdef INCLUDE_TESTS
 uint8_t I2CTest(uint8_t channel);
