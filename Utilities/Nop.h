@@ -16,4 +16,9 @@
 #define NOP()	__nop()
 #endif
 
+// Define no operation for Keil compilers.
+#if defined (__C51__)
+#define NOP()	_nop_()
+#endif
+
 #endif
