@@ -11,6 +11,8 @@
  *	Notes:			Another good task scheduler is at http://riosscheduler.org
  *					More info at http://www.ics.uci.edu/~givargis/pubs/C50.pdf
  *
+ *	Terms of Use:	MIT License
+ *
  *****************************************************************************/
 
 #include <stdint.h>								// universal data types

@@ -1,3 +1,16 @@
+/******************************************************************************
+ *
+ *	Filename:		Nop.h
+ *
+ *	Description:	The no-operation command is useful, but syntax differs
+ *					between compilers.  This file wraps the implementations
+ *					used by various embedded compilers, to make code more
+ *					portable.  So basically, you can now always type "NOP();".
+ *
+ *	Terms of Use:	MIT License
+ *
+ *****************************************************************************/
+
 #ifndef NOP_H
 #define NOP_H
 

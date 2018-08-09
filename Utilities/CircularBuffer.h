@@ -12,6 +12,8 @@
  *					"tail".  You add elements to the head, and remove them from
  *					the tail.
  *
+ *	Terms of Use:	MIT License
+ *
  *****************************************************************************/
 
 #ifndef CIRCULARBUFFER_H

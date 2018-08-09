@@ -8,6 +8,8 @@
  *
  *	Inspired by:	http://www.embedded.com/design/programming-languages-and-tools/4007578/A-six-step-process-for-migrating-embedded-C-into-a-C--object-oriented-framework
  *
+ *	Terms of Use:	MIT License
+ *
  *****************************************************************************/
 
 #define MAX_TASKS	10					// maximum number of scheduled tasks

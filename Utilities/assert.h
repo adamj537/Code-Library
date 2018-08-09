@@ -10,6 +10,8 @@
  *					not debugging, and are NOT using a watchdog, we can compile
  *					the assert out.
  *
+ *	Terms of Use:	MIT License
+ *
  *****************************************************************************/
 
 #ifndef ASSERT_H

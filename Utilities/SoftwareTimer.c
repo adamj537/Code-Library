@@ -6,6 +6,8 @@
  *
  *	Description:	This module contains code for timing events and delaying.
  *
+ *	Terms of Use:	MIT License
+ *
  *****************************************************************************/
 
 // Included modules

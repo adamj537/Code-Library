@@ -19,6 +19,8 @@
  *			that handler should be in this file.  Otherwise, each handler
  *			should be tucked away in the file of the associated module.
  *
+ *	Terms of Use:	MIT License
+ *
  *****************************************************************************/
 
 #include "project.h"					// global settings

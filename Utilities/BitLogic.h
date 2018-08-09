@@ -6,7 +6,7 @@
  *
  *	Description:	Useful macros for doing basic boolean math.
  *
- *	License:		MIT License
+ *	Terms of Use:	MIT License
  *
  *****************************************************************************/
 
