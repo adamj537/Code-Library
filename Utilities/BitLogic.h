@@ -6,6 +6,8 @@
  *
  *	Description:	Useful macros for doing basic boolean math.
  *
+ *	Origin:			github.com/adamj537/Code-Library
+ *
  *	Terms of Use:	MIT License
  *
  *****************************************************************************/
@@ -39,6 +41,10 @@
 #define TOGGLEMASK(BYTE, MASK)	((BYTE) ^= (MASK))
 #define ISMASKSET(BYTE, MASK)	((0 != ((BYTE) & (MASK))) ? TRUE : FALSE)
 #define ISMASKCLEAR(BYTE, MASK)	(!ISMASKSET((BYTE), (MASK)))
+
+// Macro to modify a register value
+#define MODIFYREG(REG, CLRMSK, SETMSK) \
+	((REG) = (((REG) & (~(CLRMSK))) | (SETMSK)))
 
 // Macros to figure out if an expression is even or odd
 #define ISODD(x)				((x) % 2)

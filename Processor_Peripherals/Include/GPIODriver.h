@@ -2,6 +2,8 @@
  *
  *	Filename:		GPIODriver.h
  *
+ *	Author:			Adam Johnson
+ *
  *  Description:	Driver for GPIO functions
  *
  *	Notes:			The direction register is opposite between PIC and AVR.
@@ -29,20 +31,29 @@ typedef struct							// port settings structure
 	GPIO_t function;					// port function register value
 	GPIO_t direction;					// port direction register; 0 = input
 	GPIO_t value;						// port value register
-	GPIO_t pull;						// pin pullup/down register
+	GPIO_t pull;						// pin pull up/down register
 	bool pullType;						// FALSE = down, TRUE = up
 } gpioConfig_t;
 
-// Configuration Functions
+// Initialize GPIO port's clock if necessary.
+void GPIOInit(uint8_t port);
+
+// Port-oriented Configuration Functions
 void GPIOConfigPort(uint8_t port, gpioConfig_t *configPtr);	// Set everything.
 void GPIOSetPortFunction(uint8_t port, GPIO_t mask);		// Set as GPIO.
 void GPIOSetPortDirection(uint8_t port, GPIO_t direction);	// Set direction.
-void GPIOSetPortPull(uint8_t port, GPIO_t mask, bool type);	// Set pullup/down.
+void GPIOSetPortPull(uint8_t port, GPIO_t mask, bool type);	// Set pull up/down.
 
-// Port-oriented functions
+// Port-oriented read/write functions
 GPIO_t GPIOReadPort(uint8_t port);							// Read a port.
 void GPIOWritePort(uint8_t port, GPIO_t value);				// Write to a port.
 void GPIOTogglePort(uint8_t port, GPIO_t mask);				// Toggle a port.
+
+// Pin-oriented Configuration Functions
+void GPIOConfigPin(uint8_t port, gpioConfig_t *configPtr);	// Set everything.
+void GPIOSetPinFunction(uint8_t port, uint8_t pin, bool val);
+void GPIOSetPinDirection(uint8_t port, uint8_t pin, bool direction);
+void GPIOSetPinPull(uint8_t port, uint8_t pin, bool type);	// Set pull up/down.
 
 // Pin-oriented functions
 bool GPIOReadPin(uint8_t port, uint8_t pin);				// Read a pin.

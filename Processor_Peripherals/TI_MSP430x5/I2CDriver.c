@@ -33,6 +33,8 @@
  *					the 2nd-to-last byte of data in the transaction.  We also
  *					need to do something similar when receiving only one byte.
  *
+ *	Origin:			github.com/adamj537/Code-Library
+ *
  *	Terms of Use:	MIT License
  *
  *****************************************************************************/
@@ -84,6 +86,9 @@ static const uint16_t baseAddr[] = {
 #endif
 };
 
+// Figure out how many channels we have available.
+#define I2C_NUM_CHANNELS	(sizeof(baseAddr)/sizeof(baseAddr[0])
+
 volatile uint8_t *txDataPtr[I2C_NUM_CHANNELS];	// pointer to TX data
 volatile uint32_t txByteCtr[I2C_NUM_CHANNELS];	// number of bytes to TX
 
@@ -96,14 +101,14 @@ volatile uint32_t rxByteCtr[I2C_NUM_CHANNELS];	// number of bytes to RX
  *
  *	Description:	Initializes the specified I2C with the provided settings.
  *
- *	Parameters:		i2cChannel_t channel - which I2C peripheral to act upon
+ *	Parameters:		uint8_t channel - which I2C peripheral to act upon
  *					i2cConfig_t *configPtr - settings to apply to the channel
  *
  *	Return Value:	I2C_RESULT_OK for success; other values indicate failure
  *
  *****************************************************************************/
 
-i2cResult_t I2CInit(i2cChannel_t channel, i2cConfig_t *configPtr)
+i2cResult_t I2CInit(uint8_t channel, i2cConfig_t *configPtr)
 {
 	i2cResult_t result = I2C_RESULT_OK;	// an optimistic return value ;)
 	uint16_t base = baseAddr[channel];	// Convert channel to base address.
@@ -113,7 +118,7 @@ i2cResult_t I2CInit(i2cChannel_t channel, i2cConfig_t *configPtr)
 	txByteCtr[channel] = 0;
 	rxByteCtr[channel] = 0;
 
-	// Check for invalid handle.
+	// Check for invalid channel.
 	if (channel >= I2C_NUM_CHANNELS)
 	{
 		result = I2C_RESULT_INVALID_SELECTION;
@@ -136,7 +141,7 @@ i2cResult_t I2CInit(i2cChannel_t channel, i2cConfig_t *configPtr)
 		REG16(base + I2CREG_OA) = configPtr->address;
 
 		// Enable general call if requested.
-		if ((configPtr->mode == I2C_MODE_SLAVE_AND_GEN_CALL)
+		if (configPtr->mode == I2C_MODE_SLAVE_AND_GEN_CALL)
 		{
 			REG16(base + I2CREG_OA) |= UCGCEN;
 		}
@@ -170,11 +175,11 @@ i2cResult_t I2CInit(i2cChannel_t channel, i2cConfig_t *configPtr)
 		REG8(base + I2CREG_CTL1) = (I2C_CLOCK_SOURCE + UCSWRST);
 
 		// Compute the clock divider to give close to the desired speed.
-		preScalarValue = (unsigned short)(I2C_CLOCK_FREQ_HZ / config->speed);
+		preScalarValue = (uint16_t)(I2C_CLOCK_FREQ_HZ / config->speed);
 		REG16(base + I2CREG_BRW) = preScalarValue;
 
 		// Set the address we'll attempt to talk to.
-		REG8(base + I2CREG_SA) = config->address;
+//		REG8(base + I2CREG_SA) = config->address;
 	}
 
 	return result;
@@ -188,13 +193,13 @@ i2cResult_t I2CInit(i2cChannel_t channel, i2cConfig_t *configPtr)
  *					the init function so that the channel can be enabled and
  *					disabled without reconfiguring it.
  *
- *	Parameters:		i2cChannel_t channel - which I2C peripheral to act upon
+ *	Parameters:		uint8_t channel - which I2C peripheral to act upon
  *
  *	Return Value:	I2C_RESULT_OK for success; other values indicate failure
  *
  *****************************************************************************/
 
-i2cResult_t I2CEnable(i2cChannel_t channel)
+i2cResult_t I2CEnable(uint8_t channel)
 {
 	i2cResult_t result = I2C_RESULT_OK;	// an optimistic return value :)
 	uint16_t base = baseAddr[channel];	// Convert channel to base address.
@@ -225,13 +230,13 @@ i2cResult_t I2CEnable(i2cChannel_t channel)
  *					specified in the init function will be preserved, so you
  *					don't need to redo the init function after calling this.
  *
- *	Parameters:		i2cChannel_t channel - which I2C peripheral to act upon
+ *	Parameters:		uint8_t channel - which I2C peripheral to act upon
  *
  *	Return Value:	I2C_RESULT_OK for success; other values indicate failure
  *
  *****************************************************************************/
 
-i2cResult_t I2CDisable(i2cChannel_t channel)
+i2cResult_t I2CDisable(uint8_t channel)
 {
 	i2cResult_t result = I2C_RESULT_OK;	// an optimistic return value :)
 	uint16_t base = baseAddr[channel];	// Convert channel to base address.
@@ -263,13 +268,13 @@ i2cResult_t I2CDisable(i2cChannel_t channel)
  *					register.  If you call I2CRead or I2CWrite while the bus is
  *					busy, then both I2C transactions will be clobbered.
  *
- *	Parameters:		i2cChannel_t channel - which I2C peripheral to act upon
+ *	Parameters:		uint8_t channel - which I2C peripheral to act upon
  *
  *	Return Value:	TRUE if the I2C Master is busy; FALSE otherwise.
  *
  *****************************************************************************/
 
-uint8_t I2CIsBusy (i2cChannel_t channel)
+uint8_t I2CIsBusy (uint8_t channel)
 {
 	uint16_t base = baseAddr[channel];	// Convert channel to base address.
 
@@ -292,7 +297,8 @@ uint8_t I2CIsBusy (i2cChannel_t channel)
  *
  *	Description:	Writes to an I2C slave device.
  *
- *	Parameters:		i2cChannel_t channel - which I2C peripheral to act upon
+ *	Parameters:		uint8_t channel - which I2C peripheral to act upon
+ *					uint8_t address - I2C device address to use
  *					uint8_t *data - array of bytes to write to slave device
  *					uint32_t count - size of data array
  *
@@ -300,7 +306,7 @@ uint8_t I2CIsBusy (i2cChannel_t channel)
  *
  *****************************************************************************/
 
-i2cResult_t I2CWrite(i2cChannel_t channel, uint8_t *data, uint32_t count)
+i2cResult_t I2CWrite(uint8_t channel, uint8_t address, uint8_t *data, uint32_t count)
 {
 	i2cResult_t result = I2C_RESULT_OK;	// an optimistic return value :)
 	uint16_t base = baseAddr[channel];	// Convert channel to base address.
@@ -322,6 +328,9 @@ i2cResult_t I2CWrite(i2cChannel_t channel, uint8_t *data, uint32_t count)
 		// Indicate that we're not reading.
 		rxByteCtr[channel] = 0;
 
+		// Set the address we'll attempt to talk to.
+		REG8(base + I2CREG_SA) = address;
+
 		// Send START + address + WRITE.
 		REG8(base + I2CREG_CTL1) |= UCTXSTT | UCTR;
 
@@ -337,7 +346,8 @@ i2cResult_t I2CWrite(i2cChannel_t channel, uint8_t *data, uint32_t count)
  *
  *	Description:	Reads from an I2C slave device.
  *
- *	Parameters:		i2cChannel_t channel - which I2C peripheral to act upon
+ *	Parameters:		uint8_t channel - which I2C peripheral to act upon
+ *					uint8_t address - I2C device address to use
  *					uint8_t *data - array to put data read from the device
  *					uint32_t count - size of data array
  *
@@ -345,7 +355,7 @@ i2cResult_t I2CWrite(i2cChannel_t channel, uint8_t *data, uint32_t count)
  *
  *****************************************************************************/
 
-i2cResult_t I2CRead(i2cChannel_t channel, uint8_t *data, uint32_t count)
+i2cResult_t I2CRead(uint8_t channel, uint8_t address, uint8_t *data, uint32_t count)
 {
 	i2cResult_t result = I2C_RESULT_OK;	// an optimistic return value :)
 	uint16_t base = baseAddr[channel];	// Convert channel to base address.
@@ -358,6 +368,9 @@ i2cResult_t I2CRead(i2cChannel_t channel, uint8_t *data, uint32_t count)
 
 	else
 	{
+		// Set the address we'll attempt to talk to.
+		REG8(base + I2CREG_SA) = address;
+
 		// Indicate that we're not writing.
 		txByteCtr[channel] = 0;
 
@@ -423,7 +436,8 @@ i2cResult_t I2CRead(i2cChannel_t channel, uint8_t *data, uint32_t count)
  *					an I2C EEPROM, so we will write the location we wish to
  *					start reading from, and then read the data.
  *
- *	Parameters:		i2cChannel_t channel - which I2C peripheral to act upon
+ *	Parameters:		uint8_t channel - which I2C peripheral to act upon
+ *					uint8_t address - I2C device address to use
  *					uint8_t *writeData - array of bytes to write to slave device
  *					uint32_t writeCount - size of data array
  *					uint8_t *readData - array to put data read from the device
@@ -433,7 +447,7 @@ i2cResult_t I2CRead(i2cChannel_t channel, uint8_t *data, uint32_t count)
  *
  *****************************************************************************/
 
-i2cResult_t I2CWriteThenRead(i2cChannel_t channel, uint8_t *writeData,
+i2cResult_t I2CWriteThenRead(uint8_t channel, uint8_t address, uint8_t *writeData,
 	uint32_t writeCount, uint8_t *readData, uint32_t readCount)
 {
 	i2cResult_t result = I2C_RESULT_OK;	// an optimistic return value :)
@@ -447,6 +461,9 @@ i2cResult_t I2CWriteThenRead(i2cChannel_t channel, uint8_t *writeData,
 
 	else
 	{
+		// Set the address we'll attempt to talk to.
+		REG8(base + I2CREG_SA) = address;
+
 		// Set TX array start address.
 		txDataPtr[channel] = writeData;
 
@@ -475,10 +492,11 @@ i2cResult_t I2CWriteThenRead(i2cChannel_t channel, uint8_t *writeData,
  *
  *	Function:		I2CReadThenWrite
  *
- *	Description:	Writes to, and then reads from, an I2C devie.  This is not
+ *	Description:	Writes to, and then reads from, an I2C device.  This is not
  *					common, but the author thought "why not?".
  *
- *	Parameters:		i2cChannel_t channel - which I2C peripheral to act upon
+ *	Parameters:		uint8_t channel - which I2C peripheral to act upon
+ *					uint8_t address - I2C device address to use
  *					uint8_t *readData - array to put data read from the device
  *					uint32_t readCount - size of data array
  *					uint8_t *writeData - array of bytes to write to slave device
@@ -488,7 +506,7 @@ i2cResult_t I2CWriteThenRead(i2cChannel_t channel, uint8_t *writeData,
  *
  *****************************************************************************/
 
-i2cResult_t I2CReadThenWrite(i2cChannel_t channel, uint8_t *readData,
+i2cResult_t I2CReadThenWrite(uint8_t channel, uint8_t address, uint8_t *readData,
 		uint32_t readCount, uint8_t *writeData, uint32_t writeCount)
 {
 	i2cResult_t result = I2C_RESULT_OK;	// an optimistic return value :)
@@ -502,6 +520,9 @@ i2cResult_t I2CReadThenWrite(i2cChannel_t channel, uint8_t *readData,
 
 	else
 	{
+		// Set the address we'll attempt to talk to.
+		REG8(base + I2CREG_SA) = address;
+
 		// Set TX array start address.
 		txDataPtr[channel] = writeData;
 
@@ -530,7 +551,7 @@ i2cResult_t I2CReadThenWrite(i2cChannel_t channel, uint8_t *readData,
  *	Test Functions
  *****************************************************************************/
 
-#ifdef INCLUDE_TEST
+#ifdef INCLUDE_TESTS
 
 #define I2C_ADDR	0x50
 
@@ -550,7 +571,7 @@ const uint8_t readMsg[] = {
 	0x00,	// EEPROM register to read from
 };
 
-uint8_t I2CTest(i2cChannel_t channel, uint8_t repeatFlag)
+uint8_t I2CTest(uint8_t channel, uint8_t repeatFlag)
 {
 	i2cResult_t result = I2C_RESULT_OK;	// an optimistic return value :)
 	i2cConfig_t config;					// module config data
@@ -627,12 +648,12 @@ uint8_t I2CTest(i2cChannel_t channel, uint8_t repeatFlag)
  *					Note 3 (above) to learn more.  Also, this function is
  *					declared as "inline" to speed up code execution in the ISR.
  *
- *	Parameters:		i2cChannel_t ch - which I2C peripheral to act upon
+ *	Parameters:		uint8_t ch - which I2C peripheral to act upon
  *					volatile uint16_t reg - interrupt vector address
  *
  *****************************************************************************/
 
-static inline void I2C_ISR(i2cChannel_t ch, volatile uint16_t reg)
+static inline void I2C_ISR(uint8_t ch, volatile uint16_t reg)
 {
 	uint16_t base = baseAddr[ch];						// Convert channel to base address.
 
