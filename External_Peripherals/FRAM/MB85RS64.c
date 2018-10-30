@@ -101,12 +101,12 @@ void FramWriteEnable(bool enable)
  * @param	addr - 32-bit address to write to in FRAM memory
  * @param	value - 8-bit value to write to memory
  *****************************************************************************/
-void FramWrite8(uint32_t addr, uint8_t value)
+void FramWriteByte(uint32_t addr, uint8_t value)
 {
 	digitalWrite(_cs, LOW);				// Enable chip select.
 	
 	SPItransfer(OPCODE_WRITE);			// Send WRITE command.
-	WriteAddress(addr);				// Send the address.
+	WriteAddress(addr);					// Send the address.
 	SPItransfer(value);					// Send the value.
 	
 	// CS on the rising edge commits the WRITE.
@@ -139,7 +139,7 @@ void FramWrite(uint32_t addr, const uint8_t *values, size_t count)
  * @param	addr - address to act upon
  * @returns	value read from FRAM
  *****************************************************************************/
-uint8_t FramRead8(uint32_t addr)
+uint8_t FramReadByte(uint32_t addr)
 {
 	uint8_t value;						// return value
 	

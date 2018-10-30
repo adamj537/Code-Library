@@ -136,3 +136,73 @@ uartResult_t UARTIsBusy(uartChannel_t channel)
 {
 	return UART_RESULT_NOT_IMPLEMENTED;
 }
+
+/******************************************************************************
+ * Test Functions
+ *****************************************************************************/
+
+#ifdef INCLUDE_TESTS
+
+#include "test.h"	// test setting definitions
+
+// how many bytes of data we've gotten
+static uint8_t receivedData;
+static uint8_t sendMessage[] = "Hello world!";
+static uint8_t receivedMesg[sizeof(sendMesg)];
+
+/* @brief	Runs when a byte of data is received
+ */
+void TestCallback(uartResult_t status, uint8_t data)
+{
+	// Remember how many bytes we've received so far.
+	receivedData++;
+	
+	// Save the data to the message.
+	receivedMesg[receivedData] = data;
+}
+
+/* @brief	Transmit a message, read it back, compare with what was sent.
+ * @remarks	This function is a loopback test; tie TX and RX together.
+ */
+bool UARTTest(uint8_t channel)
+{
+	bool result = false;				// pessimistic return value
+	uartConfig_t uartConfig;			// settings for the peripheral
+	receivedData = 0;					// Initialize count of received data.
+	uint8_t i;							// counter
+	
+	// Set the desired settings for the test.
+	uartConfig.baudRate = TEST_UART_BAUDRATE;
+	uartConfig.dataBits = TEST_UART_DATABITS;
+	uartConfig.stopBits = TEST_UART_STOPBITS;
+	uartConfig.parity   = TEST_UART_PARITY;
+	
+	// Initialize the UART.
+	UARTInit(channel, &uartConfig);
+	
+	// Register a callback for received data.
+	UARTRegisterCallback(channel, TestCallback);
+	
+	// Write data to the UART.
+	UARTWrite(channel, sendMessage, sizeof(sendMessage));
+	
+	// Wait for the message to be received back.
+	while (receivedData < sizeof(sendMessage));
+	
+	do	// This structure will catch errors nicely.
+	{
+		// Compare the received message.
+		for (i = 0; i < sizeof(sendMessage); i++)
+		{
+			if (sendMessage[i] != receivedMesg[i])
+				break;
+		}
+		
+		// Success!
+		result = true;
+	while (false);
+	
+	return result;
+}
+
+#endif

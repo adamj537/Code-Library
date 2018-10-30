@@ -55,15 +55,18 @@ typedef struct							// settings for a UART channel
 	uartParity_t parity;				// parity
 } uartConfig_t;
 
+// Callback function for received data
+typdef void (*uartCallback_t)(uartResult_t status, uint8_t data);
+
 uartResult_t UARTInit(uint8_t channel, uartConfig_t *configPtr);
 uartResult_t UARTEnable(uint8_t channel);
 uartResult_t UARTDisable(uint8_t channel);
+uartResult_t UARTRegisterCallback(uint8_t channel, uartCallback_t callback);
 uartResult_t UARTWrite(uint8_t channel, uint8_t *data, uint32_t count);
-uartResult_t UARTRead(uint8_t channel, uint8_t *data, uint32_t count);
 uartResult_t UARTIsBusy(uint8_t channel);
 
 #ifdef INCLUDE_TESTS
-uartResult_t UARTTest(uint8_t channel);
+bool UARTTest(uint8_t channel);
 #endif
 
 #endif /* UARTDRIVER_H */

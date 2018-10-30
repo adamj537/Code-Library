@@ -4,7 +4,7 @@
  *
  *	Author:			Adam Johnson
  *
- *	Description:	Driver for SPI functions.  Low- and high-level functions.
+ *	Description:	Driver for SPI functions.
  *
  *	Terms of Use:	MIT License
  *
@@ -13,13 +13,12 @@
 #ifndef SPIDRIVER_H
 #define SPIDRIVER_H
 
-typedef enum							// result of a requested SPI action
+typedef enum							// status returned by callback
 {
-	SPI_RESULT_OK = 0,					// All is well!
-	SPI_RESULT_FAIL,					// It's the target's fault.
-	SPI_RESULT_NOT_IMPLEMENTED,			// It's my fault.
-	SPI_RESULT_INVALID_SELECTION		// It's your fault.
-} spiResult_t;
+	SPI_STATUS_TX_DONE,					// done transmitting buffer
+	SPI_STATUS_RX_DONE,					// done receiving buffer
+	SPI_STATUS_ERROR,					// error has occurred
+} spiStatus_t;
 
 typedef enum							// enumeration for operation mode
 {
@@ -29,24 +28,37 @@ typedef enum							// enumeration for operation mode
 	SPI_MODE_3,							// CPOL = 1, CPHA = 1
 } spiMode_t;
 
-typedef enum							// types of callback functions
+typedef struct							// settings for the peripheral
 {
-	SPI_NUM_CALLBACKS
-} spiCbType_t;
-
-typedef struct							// settings for an SPI channel
-{
-	uint32_t speed;						// bus speed
-	spiMode_t mode;						// operation mode
+	spiMode_t mode;						// operating mode (polarity and phase)
+	uint8_t prescaler;					// bus speed divider
+	uint8_t dataSize;					// size of each data transaction [bits]
 	bool master;						// true = master, false = slave
+	bool biDirectional;					// directional mode state
+	bool lsbFirst;						// true = data transfers start with LSB; false = MSB
+	bool softwareSS;					// is slave pin managed by hardware or software
 } spiConfig_t;
 
-typedef void (*spiCallback_t)(uint8_t *dataPtr);	// prototype for callback functions
+// SPI Interrupt callback function prototype
+typedef void (*SPIIntCallback_t)(spiStatus_t status);
 
-// High-level functions:
-spiResult_t SPIInit(uint8_t channel, spiConfig_t *configPtr);
-spiResult_t SPIRegisterCallback(uint8_t channel, spiCbType_t type, i2cCallback_t callbackPtr);
-spiResult_t SPITransfer(uint8_t channel, uint8_t *mosiDataPtr, uint8_t *misoDataPtr, uint8_t count);
-uint8_t     SPIIsBusy(uint8_t channel);
+// Initialize an SPI peripheral.
+void SPIInit(uint8_t channel, spiConfig_t *configPtr);
 
-#endif /* I2CDRIVER_H */
+// Register a callback for when transmission is complete.
+void SPIRegisterCallback(uint8_t channel, SPIIntCallback_t Callback);
+
+// Transfer data.
+void SPITransfer(uint8_t channel, uint8_t *txArray, uint8_t *rxArray, size_t size);
+void SPIRead(uint8_t channel, uint8_t *rxArray, size_t count);
+void SPIWrite(uint8_t channel, uint8_t *txArray, size_t count);
+
+// See whether the peripheral is busy or idle.
+bool SPIIsBusy(uint8_t channel);
+
+#ifdef INCLUDE_TEST
+bool SPIMasterTest(void);				// Test this library in master mode.
+bool SPISlaveTest(void);				// Test this library in slave mode.
+#endif
+
+#endif /* SPIDRIVER_H */
