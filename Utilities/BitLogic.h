@@ -50,4 +50,15 @@
 #define ISODD(x)				((x) % 2)
 #define ISEVEN(x)				(!ISODD(x))
 
+// Macros to swap bytes in a variable.
+#define SWAP16(num) \
+	(((num & 0xFF00) >> 8) | \
+	 ((num & 0x00FF) << 8))
+
+#define SWAP32(num)	\
+	(((num & 0xFF000000) >> 24) | \
+	 ((num & 0x00FF0000) >>  8) | \
+	 ((num & 0x0000FF00) <<  8) | \
+	 ((num & 0x000000FF) << 24))
+
 #endif
