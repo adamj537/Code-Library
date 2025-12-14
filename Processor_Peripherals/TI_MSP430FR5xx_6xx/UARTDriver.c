@@ -148,7 +148,7 @@ uartResult_t UARTIsBusy(uartChannel_t channel)
 // how many bytes of data we've gotten
 static uint8_t receivedData;
 static uint8_t sendMessage[] = "Hello world!";
-static uint8_t receivedMesg[sizeof(sendMesg)];
+static uint8_t receivedMesg[sizeof(sendMessage)];
 
 /* @brief	Runs when a byte of data is received
  */
@@ -200,7 +200,7 @@ bool UARTTest(uint8_t channel)
 		
 		// Success!
 		result = true;
-	while (false);
+	} while (false);
 	
 	return result;
 }

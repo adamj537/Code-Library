@@ -49,14 +49,14 @@ typedef enum							// what type of parity bit to use
 
 typedef struct							// settings for a UART channel
 {
-	uint32_t baudRate;					// baud rate
+	uint32_t baudRate;					// baud rate prescaler
 	uartDataBits_t dataBits;			// data bits
 	uartStopBits_t stopBits;			// stop bits
 	uartParity_t parity;				// parity
 } uartConfig_t;
 
 // Callback function for received data
-typdef void (*uartCallback_t)(uartResult_t status, uint8_t data);
+typedef void (*uartCallback_t)(uartResult_t status, uint8_t data);
 
 uartResult_t UARTInit(uint8_t channel, uartConfig_t *configPtr);
 uartResult_t UARTEnable(uint8_t channel);
