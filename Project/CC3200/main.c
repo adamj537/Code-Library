@@ -1,20 +1,34 @@
-#include <stdint.h>
-#include <stdbool.h>
-#include "hw_memmap.h"
-#include "hw_types.h"
+/******************************************************************************
+ *
+ *	Title:			CC3200 Example Project
+ *
+ *	Filename:		Main.c
+ *
+ *	Author:			Adam Johnson
+ *
+ *	Description:	An example project for the CC3200.  Configures the
+ *					microcontroller and runs tests on the internal peripherals.
+ *					Tested on CC3200 LaunchXL board.
+ *
+ *****************************************************************************/
+
+#include "rom.h"					// macros to call ROM DriverLib
+#include "rom_map.h"				// macros choose ROM or Flash DriverLib
+#include "hw_memmap.h"				// defines base address of peripherals
+#include "hw_types.h"				// data types required by DriverLib
+#include <stdbool.h>				// defines "bool", "true", "false"
+#include <stdint.h>					// defines standard data types
+#include <stddef.h>					// defines "NULL"
 #include "hw_ints.h"
-#include "rom.h"
-#include "rom_map.h"
 #include "interrupt.h"
-#include "prcm.h"
+#include "prcm.h"					// DriverLib - power reset clock manager
+#include "uart.h"
 #include "pin.h"
-#include "utils.h"
+#include "adc.h"
+
+#include "project.h"
 #include "CC3200_I2C.h"
-
-#define I2C_ADDR	0x5A
-
-static unsigned char ucWriteBuff[256];
-static unsigned char ucReadBuff[256];
+#include "CC3200_ADC.h"
 
 #if defined(ccs)
 extern void (* const g_pfnVectors[])(void);
@@ -23,60 +37,49 @@ extern void (* const g_pfnVectors[])(void);
 extern uVectorEntry __vector_table;
 #endif
 
-static void BoardInit(void)
+void Setup(void)
 {
-    // In case of TI-RTOS vector table is initialize by OS itself
+	// In case of TI-RTOS vector table is initialized by OS itself.
 #ifndef USE_TIRTOS
-    // Set vector table base
+	// Set vector table base.
 #if defined(ccs)
-    MAP_IntVTableBaseSet((unsigned long)&g_pfnVectors[0]);
+	MAP_IntVTableBaseSet((unsigned long)&g_pfnVectors[0]);
 #endif
 #if defined(ewarm)
-    MAP_IntVTableBaseSet((unsigned long)&__vector_table);
+	MAP_IntVTableBaseSet((unsigned long)&__vector_table);
 #endif
 #endif
-    // Enable global interrupts.
-    MAP_IntMasterEnable();
 
-    // Enable fault interrupt.
-    MAP_IntEnable(FAULT_SYSTICK);
+	// Enable processor.
+	MAP_IntMasterEnable();
+	MAP_IntEnable(FAULT_SYSTICK);
 
-    PRCMCC3200MCUInit();
+	// Set mandatory configurations for the MCU.
+	PRCMCC3200MCUInit();
+
+	// Configure PIN_55 for UART0 UART0_TX.
+	MAP_PinTypeUART(PIN_55, PIN_MODE_3);
+
+	// Configure PIN_57 for UART0 UART0_RX.
+	MAP_PinTypeUART(PIN_57, PIN_MODE_3);
+
+	// Configure PIN_01 for I2C0 I2C_SCL.
+	MAP_PinTypeI2C(PIN_01, PIN_MODE_1);
+
+	// Configure PIN_02 for I2C0 I2C_SDA.
+	MAP_PinTypeI2C(PIN_02, PIN_MODE_1);
+
+	// Configure PIN_58 for ADC (could also use PIN_59 or PIN_60).
+	// PIN_57 is also an ADC, but is being used (above) for UART0_RX.
+	MAP_PinTypeADC(PIN_58, PIN_MODE_255);
 }
 
 int main(void)
 {
-	MAP_PinTypeI2C(PIN_01,PIN_MODE_1);
-	MAP_PinTypeI2C(PIN_02,PIN_MODE_1);
+	Setup();							// Initialize the processor.
 
-	BoardInit();
-
-	I2C_Init();
+//	I2CTest(I2C0, false);				// Test I2C driver.
+	AdcTest(ADC1);						// Test ADC driver.
 	
-	ucWriteBuff[0] = 0x00;
-
-	// Repeat test forever.
-	while(1)
-	{
-		// Do Write Only
-		I2C_Transfer(I2C_ADDR, &ucWriteBuff[0], ucReadBuff, 1, 0);
-
-		// Wait for transaction to finish.
-		while (I2C_IsBusy());
-
-		// Wait 1 ms.
-		UtilsDelay(26666);
-
-		// Do Read Only
-		I2C_Transfer(I2C_ADDR, &ucWriteBuff[0], ucReadBuff, 0, 32);
-
-		// Wait for transaction to finish.
-		while (I2C_IsBusy());
-
-		// Do Write-then-Read transfer
-		I2C_Transfer(I2C_ADDR, &ucWriteBuff[0], ucReadBuff, 1, 32);
-
-		// Wait for transaction to finish.
-		while (I2C_IsBusy());
-	}
+	while (1);							// Stay here forever.
 }
