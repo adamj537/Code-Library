@@ -1,13 +1,8 @@
-/******************************************************************************
- *
- *	Filename:		I2CDriver.h
- *
- *	Author:			Adam Johnson
- *
- *	Description:	Driver for I2C functions.  Low- and high-level functions.
- *
- *	Terms of Use:	MIT License
- *
+/**************************************************************************//*!
+ * @file		I2CDriver.h
+ * @author		Adam Johnson
+ * @brief		I2C functions (low and high level)
+ * @license		MIT License
  *****************************************************************************/
 
 #ifndef I2CDRIVER_H
@@ -83,4 +78,4 @@ void        I2CStartWait(uint8_t channel, uint8_t addr);	// Send START & wait fo
 uint8_t     I2CWrite(uint8_t channel, uint8_t data);		// Send one byte.
 uint8_t     I2CRead(uint8_t channel, i2cAck_t response);	// Read one byte; request more or STOP.
 
-#endif /* I2CDRIVER_H */
+#endif

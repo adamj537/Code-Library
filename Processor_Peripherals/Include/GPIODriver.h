@@ -1,17 +1,11 @@
-/******************************************************************************
- *
- *	Filename:		GPIODriver.h
- *
- *	Author:			Adam Johnson
- *
- *  Description:	Driver for GPIO functions
- *
- *	Notes:			The direction register is opposite between PIC and AVR.
- *					For AVR, 0 = input.  For PIC, 0 = output.
- *					So the PIC version of this driver inverts this register.
- *
- *	Terms of Use:	MIT License
- *
+/**************************************************************************//*!
+ * @file		GPIODriver.h
+ * @author		Adam Johnson
+ * @brief		Driver for GPIO
+ * @remarks		The direction register is opposite between PIC and AVR.
+ *				For AVR, 0 = input.  For PIC, 0 = output.
+ *				So the PIC version of this driver inverts this register.
+ * @license		MIT License
  *****************************************************************************/
 
 #ifndef GPIODRIVER_H
@@ -60,4 +54,4 @@ bool GPIOReadPin(uint8_t port, uint8_t pin);				// Read a pin.
 void GPIOWritePin(uint8_t port, uint8_t pin, uint8_t value);// Write a pin.
 void GPIOTogglePin(uint8_t port, uint8_t pin);				// Toggle a pin.
 
-#endif /* GPIODRIVER_H */
+#endif

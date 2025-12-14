@@ -1,16 +1,11 @@
-/******************************************************************************
- *
- *	Filename:		hal_timer.h
- *
- *	Author:			Adam Johnson
- *
- *	Description:	This module contains code for timing events and delaying.
- *					The user can register a callback function that runs after
- *					a certain time period has elapsed.  There is also a delay
- *					function, as well as functions to measure elapsed time.
- *
- *	Terms of Use:	MIT License
- *
+/**************************************************************************//*!
+ * @file	TimerDriver.h
+ * @author	Adam Johnson
+ * @brief	This module contains code for timing events and delaying.
+ * @remarks	The user can register a callback function that runs after a certain
+ *			time period has elapsed.  There is also a delay function, as well
+ *			as functions to measure elapsed time.
+ * @license	MIT License
  *****************************************************************************/
 
 #ifndef TIMERDRIVER_H
@@ -39,4 +34,4 @@ void TimerClear(uint8_t index);
 // Run any registered actions.
 bool TimerProcess(void);
 
-#endif /* TIMERDRIVER_H */
+#endif
